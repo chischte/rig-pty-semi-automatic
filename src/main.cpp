@@ -111,7 +111,7 @@ public:
   static int objectCount;
 
   // Every derived class must implement this method:
-  virtual void doStuff() = 0;
+  virtual void doStuff() {}
 
   // SETTER:
   void setDisplayString(String displayString)
@@ -139,20 +139,34 @@ private:
 };
 
 //*******************
-// CONCRETE CLASS
+// CONCRETE CLASS I
 //*******************
 class StepWippenhebel : public CycleStepTemplate
 {
 public:
-  void doStuff()
+  void doStuff() override
   {
     SchlittenZylinder.stroke(1500, 1000);
     eepromCounter.setup(0, 1023, 20);
-    long testerer = eepromCounter.getValue(1);
+    long compileTest = eepromCounter.getValue(1);
     if (BandKlemmZylinder.stroke_completed())
     {
       stateController.switchToNextStep();
     }
+    Serial.println("Class I does stuff");
+  }
+
+private:
+};
+//*******************
+// CONCRETE CLASS II
+//*******************
+class StepBandKlemmen : public CycleStepTemplate
+{
+public:
+  void doStuff() override
+  {
+    Serial.println("Class II does stuff");
   }
 
 private:
@@ -165,7 +179,8 @@ private:
 int CycleStepTemplate::objectCount = 0;
 // Create Objects:
 StepWippenhebel stepWippenhebel;
-StepWippenhebel stepWippenhebelloesch;
+StepBandKlemmen stepBandKlemmen;
+int noOfCycleSteps = CycleStepTemplate::objectCount;
 
 //*****************************************************************************
 
@@ -174,8 +189,10 @@ void setup()
   Serial.begin(115200);
   Serial.println(CycleStepTemplate::objectCount);
   // CONFIGURE CYCLE STEP OBJECTS:
-  stepWippenhebel.setCycleStepNo(555);
+  stepWippenhebel.setCycleStepNo(1);
   stepWippenhebel.setDisplayString("WIPPENHELBEL");
+  stepBandKlemmen.setCycleStepNo(2);
+  stepBandKlemmen.setDisplayString("BAND KLEMMEN");
 
   // ASK FOR OBJECT PROPERTIES:
   stepWippenhebel.getCycleStepNo();
@@ -189,6 +206,7 @@ void setup()
 void loop()
 {
   stepWippenhebel.doStuff();
-
-  delay(500);
+  delay(1200);
+  stepBandKlemmen.doStuff();
+  delay(1200);
 }
