@@ -193,17 +193,25 @@ int CycleStep::objectCount = 0;
 
 std::vector<CycleStep *> pointers;
 //vector<CycleStep *> pointers;
-pointers.push_back(new StepWippenhebel);
+//pointers.push_back(new StepWippenhebel);
 //pointers.push_back(new StepBandKlemmen);
 
 //StepWippenhebel stepWippenhebel;
 //StepBandKlemmen stepBandKlemmen;
+
+//CANT GET VECTOR SOLUTION TO WORK
+//TRY VOID POINTER:
+void *ary[2];
+
 int noOfCycleSteps = CycleStep::objectCount;
 
 //*****************************************************************************
 
 void setup()
 {
+  ary[0] = new StepWippenhebel();
+  ary[1] = new StepBandKlemmen;
+  pointers.push_back(new StepWippenhebel);
   Serial.begin(115200);
   Serial.println(CycleStep::objectCount);
   // CONFIGURE CYCLE STEP OBJECTS:
