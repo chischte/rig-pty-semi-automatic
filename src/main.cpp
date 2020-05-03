@@ -1,12 +1,10 @@
 #include <Arduino.h>
 
-#include <Controllino.h>    // https://github.com/CONTROLLINO-PLC/CONTROLLINO_Library
 #include <Cylinder.h>       // https://github.com/chischte/cylinder-library
 #include <Debounce.h>       // https://github.com/chischte/debounce-library
 #include <Insomnia.h>       // https://github.com/chischte/insomnia-delay-library
 #include <EEPROM_Counter.h> // https://github.com/chischte/eeprom-counter-library
 #include <EEPROM_Logger.h>  // https://github.com/chischte/eeprom-logger-library.git
-#include <Nextion.h>        // https://github.com/itead/ITEADLIB_Arduino_Nextion
 
 #include <StateController.h> // contains all machine states
 
@@ -82,12 +80,8 @@ int cycleTimeInSeconds = 30; // estimated value for the timout timer
 //******************************************************************************
 // GENERATE INSTANCES OF CLASSES:
 //******************************************************************************
-Cylinder SchlittenZylinder(CONTROLLINO_D3);
-Cylinder BandKlemmZylinder(CONTROLLINO_D4);
-Cylinder SpanntastenZylinder(CONTROLLINO_D5);
-Cylinder SchweisstastenZylinder(CONTROLLINO_D6);
-Cylinder WippenhebelZylinder(CONTROLLINO_D7);
-Cylinder MesserZylinder(CONTROLLINO_D8);
+Cylinder SchlittenZylinder(5);
+Cylinder BandKlemmZylinder(6);
 
 Insomnia errorBlinkTimer;
 unsigned long blinkDelay = 600;
@@ -99,49 +93,6 @@ Insomnia nexResetButtonTimeout;
 StateController stateController(numberOfMainCycleSteps);
 
 EEPROM_Counter eepromCounter;
-EEPROM_Logger errorLogger;
-
-//******************************************************************************
-long mergeCurrentTime()
-{
-  long mergedTime = 0;
-
-  // GET THE CURRENT TIME:
-  int hour = Controllino_GetHour();
-  int minute = Controllino_GetMinute();
-  long second = Controllino_GetSecond();
-
-  // MERGE (HOUR 5bit / MINUTE 6bit / SECOND 6bit):
-  mergedTime = hour;
-  mergedTime = (mergedTime << 6) | minute; // move 6 bits minute
-  mergedTime = (mergedTime << 6) | second; // move 6 bits second
-  return mergedTime;
-}
-
-void writeErrorLog(byte errorCode)
-{
-  long cycleNumber = eepromCounter.getValue(shorttimeCounter);
-  long logTime = mergeCurrentTime();
-  errorLogger.writeLog(cycleNumber, logTime, errorCode);
-}
-
-//*****************************************************************************
-
-void setup()
-{
-
-  Serial.begin(115200);
-
-  // CREATE A SETUP ENTRY IN THE LOG:
-  writeErrorLog(toolResetError);
-  stateController.setStepMode();
-  resetTimeout.setTime((eepromCounter.getValue(coolingTime) + cycleTimeInSeconds) * 1000);
-  Serial.println(" ");
-  Serial.println("EXIT SETUP");
-}
-void loop()
-{
-}
 
 //*****************************************************************************
 // EXPERIMENT CLASS PER CYCLE STEP
@@ -150,16 +101,27 @@ void loop()
 //*******************
 // ABSTRACT CLASS
 //*******************
-class cycleStep
+class CycleStepTemplate
 {
 public:
-  //virtual void doStuff();
+  virtual void doStuff();
+  void setCycleStepNo(int cycleStepNo)
+  {
+    _cycleStepNo = cycleStepNo;
+  }
+  int getCycleStepNo()
+  {
+    return _cycleStepNo;
+    //Serial.println(_cycleStepNo);
+  }
   //String displayAString;
+private:
+  int _cycleStepNo;
 };
 //*******************
 // CONCRETE CLASS
 //*******************
-class WippenhebelStep : public cycleStep
+class StepWippenhebel : public CycleStepTemplate
 {
 public:
   String DisplayString = "WIPPENHEBEL";
@@ -170,25 +132,36 @@ public:
 
   void doStuff()
   {
-    WippenhebelZylinder.stroke(1500, 1000);
+    SchlittenZylinder.stroke(1500, 1000);
     eepromCounter.setup(0, 1023, 20);
     long testerer = eepromCounter.getValue(1);
-    if (WippenhebelZylinder.stroke_completed())
+    if (BandKlemmZylinder.stroke_completed())
     {
       stateController.switchToNextStep();
     }
   }
 };
+
 //*******************
 // CREATE THE CLASS
 //*******************
-WippenhebelStep wippenhebelObject;
+StepWippenhebel stepWippenhebel;
 
-//*******************
-// USE THE CLASS
-//*******************
-void useObject()
+//*****************************************************************************
+
+void setup()
 {
-  wippenhebelObject.objectMethod();
-  wippenhebelObject.doStuff();
+
+  Serial.begin(115200);
+
+  // CREATE A SETUP ENTRY IN THE LOG:
+  stateController.setStepMode();
+  Serial.println(" ");
+  Serial.println("EXIT SETUP");
+}
+void loop()
+{
+  stepWippenhebel.objectMethod();
+  stepWippenhebel.doStuff();
+  delay(500);
 }
