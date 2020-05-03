@@ -103,6 +103,11 @@ EEPROM_Counter eepromCounter;
 class CycleStepTemplate
 {
 public:
+  CycleStepTemplate()
+  {
+    objectCount++;
+  }
+
   static int objectCount;
 
   // Every derived class must implement this method:
@@ -154,14 +159,20 @@ private:
 };
 
 //*******************
-// CREATE THE CLASS
+// CREATE THE CYCLE STEP OBJECTS
 //*******************
+// Initialize the object count variable first:
+int CycleStepTemplate::objectCount = 0;
+// Create Objects:
 StepWippenhebel stepWippenhebel;
+StepWippenhebel stepWippenhebelloesch;
 
 //*****************************************************************************
 
 void setup()
 {
+  Serial.begin(115200);
+  Serial.println(CycleStepTemplate::objectCount);
   // CONFIGURE CYCLE STEP OBJECTS:
   stepWippenhebel.setCycleStepNo(555);
   stepWippenhebel.setDisplayString("WIPPENHELBEL");
@@ -174,7 +185,6 @@ void setup()
   stateController.setStepMode();
   Serial.println(" ");
   Serial.println("EXIT SETUP");
-  Serial.begin(115200);
 }
 void loop()
 {
