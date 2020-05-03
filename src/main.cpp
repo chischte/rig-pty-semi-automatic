@@ -1,6 +1,4 @@
 #include <Arduino.h>
-//#include <string>
-//#include <iostream>
 #include <Cylinder.h>       // https://github.com/chischte/cylinder-library
 #include <Debounce.h>       // https://github.com/chischte/debounce-library
 #include <Insomnia.h>       // https://github.com/chischte/insomnia-delay-library
@@ -96,27 +94,34 @@ StateController stateController(numberOfMainCycleSteps);
 EEPROM_Counter eepromCounter;
 
 //*****************************************************************************
-// EXPERIMENT CLASS PER CYCLE STEP
+// EXPERIMENT ONE CLASS PER CYCLE STEP
 //*****************************************************************************
 
 //*******************
 // ABSTRACT CLASS
 //*******************
-
 class CycleStepTemplate
 {
-
 public:
+  static int objectCount;
+
+  // Every derived class must implement this method:
   virtual void doStuff() = 0;
+
+  // SETTER:
+  void setDisplayString(String displayString)
+  {
+    _displayString = displayString;
+  }
+  void setCycleStepNo(int cycleStepNo)
+  {
+    _cycleStepNo = cycleStepNo;
+  }
+  // GETTER:
   String getDisplayString()
   {
     Serial.println(_displayString);
     return _displayString;
-  }
-
-  void setCycleStepNo(int cycleStepNo)
-  {
-    _cycleStepNo = cycleStepNo;
   }
   void getCycleStepNo()
   {
@@ -134,8 +139,6 @@ private:
 class StepWippenhebel : public CycleStepTemplate
 {
 public:
-  void objectMethod() {}
-
   void doStuff()
   {
     SchlittenZylinder.stroke(1500, 1000);
@@ -148,7 +151,6 @@ public:
   }
 
 private:
-  String _displayString = "WIPPENHEBEL";
 };
 
 //*******************
@@ -160,18 +162,23 @@ StepWippenhebel stepWippenhebel;
 
 void setup()
 {
+  // CONFIGURE CYCLE STEP OBJECTS:
+  stepWippenhebel.setCycleStepNo(555);
+  stepWippenhebel.setDisplayString("WIPPENHELBEL");
 
-  Serial.begin(115200);
+  // ASK FOR OBJECT PROPERTIES:
+  stepWippenhebel.getCycleStepNo();
+  stepWippenhebel.getDisplayString();
+
   // CREATE A SETUP ENTRY IN THE LOG:
   stateController.setStepMode();
   Serial.println(" ");
   Serial.println("EXIT SETUP");
-  stepWippenhebel.setCycleStepNo(555);
+  Serial.begin(115200);
 }
 void loop()
 {
   stepWippenhebel.doStuff();
-  stepWippenhebel.getCycleStepNo();
+
   delay(500);
-  stepWippenhebel.getDisplayString();
 }
