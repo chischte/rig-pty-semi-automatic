@@ -1,5 +1,5 @@
-#include <StandardCplusplus.h>
-#include <serstream>
+#include <ArduinoSTL.h> //https://github.com/mike-matera/ArduinoSTL
+//#include <serstream>
 #include <Arduino.h>
 //#include <Vector.h>
 #include <Cylinder.h>       // https://github.com/chischte/cylinder-library
@@ -184,10 +184,16 @@ private:
 int CycleStep::objectCount = 0;
 
 // Create Objects:
+// VECTOR SOLUTION:
 //https://stackoverflow.com/questions/1579786/are-array-of-pointers-to-different-types-possible-in-c
-//std::vector<CycleStep *> pointers;
-vector<CycleStep *> pointers;
-//pointers.push_back(new StepWippenhebel);
+// DESCRIPTION OF THE ERROR:
+//https://community.platformio.org/t/standard-c-library-standardcplusplus-h-does-not-work-with-pio/12225/3
+// RECOMMENDED AND INSTALLED LIBRARY:
+//https://github.com/mike-matera/ArduinoSTL
+
+std::vector<CycleStep *> pointers;
+//vector<CycleStep *> pointers;
+pointers.push_back(new StepWippenhebel);
 //pointers.push_back(new StepBandKlemmen);
 
 //StepWippenhebel stepWippenhebel;
