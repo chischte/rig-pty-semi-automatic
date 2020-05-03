@@ -1,5 +1,6 @@
 #include <Arduino.h>
-
+//#include <string>
+//#include <iostream>
 #include <Cylinder.h>       // https://github.com/chischte/cylinder-library
 #include <Debounce.h>       // https://github.com/chischte/debounce-library
 #include <Insomnia.h>       // https://github.com/chischte/insomnia-delay-library
@@ -101,31 +102,46 @@ EEPROM_Counter eepromCounter;
 //*******************
 // ABSTRACT CLASS
 //*******************
+
 class CycleStepTemplate
 {
+
 public:
+  //String haudi = "haudistring";
+
+  //std::string my_string;
+
   virtual void doStuff();
+  //String getDisplayString()
+  //{
+  //return _displayString;
+  //}
+
   void setCycleStepNo(int cycleStepNo)
   {
     _cycleStepNo = cycleStepNo;
   }
-  int getCycleStepNo()
+  void getCycleStepNo()
   {
-    return _cycleStepNo;
-    //Serial.println(_cycleStepNo);
+    Serial.println(_cycleStepNo);
   }
-  //String displayAString;
+
 private:
+  int gogo = 5;
+
+  //String _displayString = "n.a.";
   int _cycleStepNo;
 };
+
 //*******************
 // CONCRETE CLASS
 //*******************
 class StepWippenhebel : public CycleStepTemplate
 {
-public:
-  String DisplayString = "WIPPENHEBEL";
 
+public:
+  //String _displayString = "WIPPENHEBEL";
+  String haudi = "haudistring";
   void objectMethod()
   {
   }
@@ -153,15 +169,18 @@ void setup()
 {
 
   Serial.begin(115200);
-
   // CREATE A SETUP ENTRY IN THE LOG:
   stateController.setStepMode();
   Serial.println(" ");
   Serial.println("EXIT SETUP");
+  stepWippenhebel.setCycleStepNo(555);
 }
 void loop()
 {
+
   stepWippenhebel.objectMethod();
   stepWippenhebel.doStuff();
+  stepWippenhebel.getCycleStepNo();
   delay(500);
+  //stepWippenhebel.getDisplayString();
 }
