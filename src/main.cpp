@@ -10,8 +10,6 @@
 
 #include <StateController.h> // contains all machine states
 
-using namespace std;
-
 //******************************************************************************
 // DEFINE NAMES AND SEQUENCE OF STEPS FOR THE MAIN CYCLE:
 //******************************************************************************
@@ -185,6 +183,7 @@ int CycleStep::objectCount = 0;
 
 // Create Objects:
 // VECTOR SOLUTION:
+//https://gamedev.stackexchange.com/questions/168841/c-create-array-of-multiple-types
 //https://stackoverflow.com/questions/1579786/are-array-of-pointers-to-different-types-possible-in-c
 // DESCRIPTION OF THE ERROR:
 //https://community.platformio.org/t/standard-c-library-standardcplusplus-h-does-not-work-with-pio/12225/3
@@ -196,12 +195,16 @@ std::vector<CycleStep *> pointers;
 //pointers.push_back(new StepWippenhebel);
 //pointers.push_back(new StepBandKlemmen);
 
-//StepWippenhebel stepWippenhebel;
+StepWippenhebel pointerStepWippenhebel;
 //StepBandKlemmen stepBandKlemmen;
 
 //CANT GET VECTOR SOLUTION TO WORK
 //TRY VOID POINTER:
 void *ary[2];
+
+// POINTER TO OBJECT SOLUTION:
+//http://www.infobrother.com/Tutorial/C++/C++_Pointer_Object
+CycleStep *dptr;
 
 int noOfCycleSteps = CycleStep::objectCount;
 
@@ -209,9 +212,11 @@ int noOfCycleSteps = CycleStep::objectCount;
 
 void setup()
 {
-  ary[0] = new StepWippenhebel();
+  dptr = &pointerStepWippenhebel;
+  ary[0] = new StepWippenhebel;
   ary[1] = new StepBandKlemmen;
   pointers.push_back(new StepWippenhebel);
+  pointers.push_back(new StepBandKlemmen);
   Serial.begin(115200);
   Serial.println(CycleStep::objectCount);
   // CONFIGURE CYCLE STEP OBJECTS:
@@ -230,9 +235,12 @@ void setup()
 }
 void loop()
 {
-  //step[0]->doStuff();
+  pointers[0]->doStuff();
+  //ary[0]->doStuff();
+  dptr->doStuff();
   //stepWippenhebel.doStuff();
   delay(1200);
+  pointers[1]->doStuff();
   //stepBandKlemmen.doStuff();
   delay(1200);
 }
