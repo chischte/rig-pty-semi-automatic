@@ -107,15 +107,12 @@ class CycleStepTemplate
 {
 
 public:
-  //String haudi = "haudistring";
-
-  //std::string my_string;
-
-  virtual void doStuff();
-  //String getDisplayString()
-  //{
-  //return _displayString;
-  //}
+  virtual void doStuff() = 0;
+  String getDisplayString()
+  {
+    Serial.println(_displayString);
+    return _displayString;
+  }
 
   void setCycleStepNo(int cycleStepNo)
   {
@@ -127,9 +124,7 @@ public:
   }
 
 private:
-  int gogo = 5;
-
-  //String _displayString = "n.a.";
+  String _displayString = "n.a.";
   int _cycleStepNo;
 };
 
@@ -138,13 +133,8 @@ private:
 //*******************
 class StepWippenhebel : public CycleStepTemplate
 {
-
 public:
-  //String _displayString = "WIPPENHEBEL";
-  String haudi = "haudistring";
-  void objectMethod()
-  {
-  }
+  void objectMethod() {}
 
   void doStuff()
   {
@@ -156,6 +146,9 @@ public:
       stateController.switchToNextStep();
     }
   }
+
+private:
+  String _displayString = "WIPPENHEBEL";
 };
 
 //*******************
@@ -177,10 +170,8 @@ void setup()
 }
 void loop()
 {
-
-  stepWippenhebel.objectMethod();
   stepWippenhebel.doStuff();
   stepWippenhebel.getCycleStepNo();
   delay(500);
-  //stepWippenhebel.getDisplayString();
+  stepWippenhebel.getDisplayString();
 }
