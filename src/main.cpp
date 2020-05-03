@@ -1,4 +1,7 @@
+#include <StandardCplusplus.h>
+#include <serstream>
 #include <Arduino.h>
+//#include <Vector.h>
 #include <Cylinder.h>       // https://github.com/chischte/cylinder-library
 #include <Debounce.h>       // https://github.com/chischte/debounce-library
 #include <Insomnia.h>       // https://github.com/chischte/insomnia-delay-library
@@ -6,6 +9,8 @@
 #include <EEPROM_Logger.h>  // https://github.com/chischte/eeprom-logger-library.git
 
 #include <StateController.h> // contains all machine states
+
+using namespace std;
 
 //******************************************************************************
 // DEFINE NAMES AND SEQUENCE OF STEPS FOR THE MAIN CYCLE:
@@ -100,10 +105,10 @@ EEPROM_Counter eepromCounter;
 //*******************
 // ABSTRACT CLASS
 //*******************
-class CycleStepTemplate
+class CycleStep
 {
 public:
-  CycleStepTemplate()
+  CycleStep()
   {
     objectCount++;
   }
@@ -111,7 +116,7 @@ public:
   static int objectCount;
 
   // Every derived class must implement this method:
-  virtual void doStuff() {}
+  virtual void doStuff() = 0;
 
   // SETTER:
   void setDisplayString(String displayString)
@@ -141,7 +146,7 @@ private:
 //*******************
 // CONCRETE CLASS I
 //*******************
-class StepWippenhebel : public CycleStepTemplate
+class StepWippenhebel : public CycleStep
 {
 public:
   void doStuff() override
@@ -161,7 +166,7 @@ private:
 //*******************
 // CONCRETE CLASS II
 //*******************
-class StepBandKlemmen : public CycleStepTemplate
+class StepBandKlemmen : public CycleStep
 {
 public:
   void doStuff() override
@@ -176,37 +181,44 @@ private:
 // CREATE THE CYCLE STEP OBJECTS
 //*******************
 // Initialize the object count variable first:
-int CycleStepTemplate::objectCount = 0;
+int CycleStep::objectCount = 0;
+
 // Create Objects:
-StepWippenhebel stepWippenhebel;
-StepBandKlemmen stepBandKlemmen;
-int noOfCycleSteps = CycleStepTemplate::objectCount;
+//https://stackoverflow.com/questions/1579786/are-array-of-pointers-to-different-types-possible-in-c
+//std::vector<CycleStep *> pointers;
+vector<CycleStep *> pointers;
+//pointers.push_back(new StepWippenhebel);
+//pointers.push_back(new StepBandKlemmen);
+
+//StepWippenhebel stepWippenhebel;
+//StepBandKlemmen stepBandKlemmen;
+int noOfCycleSteps = CycleStep::objectCount;
 
 //*****************************************************************************
 
 void setup()
 {
   Serial.begin(115200);
-  Serial.println(CycleStepTemplate::objectCount);
+  Serial.println(CycleStep::objectCount);
   // CONFIGURE CYCLE STEP OBJECTS:
-  stepWippenhebel.setCycleStepNo(1);
-  stepWippenhebel.setDisplayString("WIPPENHELBEL");
-  stepBandKlemmen.setCycleStepNo(2);
-  stepBandKlemmen.setDisplayString("BAND KLEMMEN");
+  //stepWippenhebel.setCycleStepNo(1);
+  //stepWippenhebel.setDisplayString("WIPPENHELBEL");
+  //stepBandKlemmen.setCycleStepNo(2);
+  //stepBandKlemmen.setDisplayString("BAND KLEMMEN");
 
   // ASK FOR OBJECT PROPERTIES:
-  stepWippenhebel.getCycleStepNo();
-  stepWippenhebel.getDisplayString();
+  //stepWippenhebel.getCycleStepNo();
+  //stepWippenhebel.getDisplayString();
 
   // CREATE A SETUP ENTRY IN THE LOG:
   stateController.setStepMode();
-  Serial.println(" ");
   Serial.println("EXIT SETUP");
 }
 void loop()
 {
-  stepWippenhebel.doStuff();
+  //step[0]->doStuff();
+  //stepWippenhebel.doStuff();
   delay(1200);
-  stepBandKlemmen.doStuff();
+  //stepBandKlemmen.doStuff();
   delay(1200);
 }
