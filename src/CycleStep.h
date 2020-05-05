@@ -2,11 +2,11 @@
 #define CYCLESTEP_H
 #include "Arduino.h"
 
-class CycleStep {
+class CycleStep
+{
 public:
   // VARIABLES:
   static int objectCount;
-  // n.a.
 
   // FUNTIONS:
   CycleStep();
@@ -14,23 +14,14 @@ public:
   virtual void doStuff() = 0;
   // SETTER:
   void setDisplayString(String displayString);
-  void setCycleStepNo(int cycleStepNo);
   // GETTER:
   String getDisplayString();
-  void getCycleStepNo();
 
 private:
   // VARIABLES:
   String _displayString = "n.a.";
-  int _cycleStepNo;
   // FUNCTIONS:
- 
-
-
-
+  //n.A.
 };
 
-
-
 #endif
-
