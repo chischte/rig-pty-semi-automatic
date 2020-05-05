@@ -95,9 +95,15 @@ EEPROM_Counter eepromCounter;
 //******************************************************************************
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
+//------------------------------------------------------------------------------
 class StepWippenhebel : public CycleStep
 {
 public:
+  String getDisplayString() override
+  {
+    return "n.ddddda.";
+  }
+
   void doStuff() override
   {
     SchlittenZylinder.stroke(1500, 1000);
@@ -106,18 +112,23 @@ public:
     {
       stateController.switchToNextStep();
     }
-    Serial.println("Class I does stuff");
+    Serial.println("Class I bytes ya tooth");
   }
 
 private:
 };
-
+//------------------------------------------------------------------------------
 class StepBandKlemmen : public CycleStep
 {
 public:
+  String getDisplayString() override
+  {
+    return "n.ddddda.";
+  }
+
   void doStuff() override
   {
-    Serial.println("Class II does stuff");
+    Serial.println("Class II bytes me teeth");
   }
 
 private:
@@ -145,10 +156,13 @@ int noOfCycleSteps = CycleStep::objectCount;
 
 void setup()
 {
+  //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
-  // THE SEQUENCE IS IMPORTANT
+  // THE SEQUENCE IS IMPORTANT!
+  //------------------------------------------------
   pointers.push_back(new StepWippenhebel);
   pointers.push_back(new StepBandKlemmen);
+  //------------------------------------------------
   Serial.begin(115200);
   Serial.println(CycleStep::objectCount);
 
@@ -158,8 +172,15 @@ void setup()
 }
 void loop()
 {
-  //pointers[0]->doStuff();
-  delay(1200);
-  //pointers[1]->doStuff();
-  delay(1200);
+
+  std::cout << "HERE COMES THE FOLLOWING:\n";
+  std::cout << "Dis doma fist: ...";
+  pointers[0]->doStuff();
+  Serial.println(pointers[0]->getDisplayString());
+
+  std::cout << "Dis doma second did: ...";
+  pointers[1]->doStuff();
+  std::cout << "...is Name was:" << pointers[1]->getDisplayString() << "\n";
+
+  delay(3000);
 }

@@ -13,13 +13,12 @@ public:
   // Every derived class must implement this method:
   virtual void doStuff() = 0;
   // SETTER:
-  void setDisplayString(String displayString);
   // GETTER:
-  String getDisplayString();
+  virtual String getDisplayString() = 0;
 
 private:
   // VARIABLES:
-  String _displayString = "n.a.";
+
   // FUNCTIONS:
   //n.A.
 };
