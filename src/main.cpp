@@ -1,13 +1,11 @@
 #include <ArduinoSTL.h> //https://github.com/mike-matera/ArduinoSTL
-//#include <serstream>
-#include <Arduino.h>
-//#include <Vector.h>
+//#include <Arduino.h>
 #include <Cylinder.h>       // https://github.com/chischte/cylinder-library
 #include <Debounce.h>       // https://github.com/chischte/debounce-library
 #include <Insomnia.h>       // https://github.com/chischte/insomnia-delay-library
 #include <EEPROM_Counter.h> // https://github.com/chischte/eeprom-counter-library
 #include <EEPROM_Logger.h>  // https://github.com/chischte/eeprom-logger-library.git
-
+#include <CycleStep.h>
 #include <StateController.h> // contains all machine states
 
 //******************************************************************************
