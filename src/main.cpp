@@ -99,47 +99,6 @@ EEPROM_Counter eepromCounter;
 //*****************************************************************************
 
 //*******************
-// ABSTRACT CLASS
-//*******************
-class CycleStep
-{
-public:
-  CycleStep()
-  {
-    objectCount++;
-  }
-
-  static int objectCount;
-
-  // Every derived class must implement this method:
-  virtual void doStuff() = 0;
-
-  // SETTER:
-  void setDisplayString(String displayString)
-  {
-    _displayString = displayString;
-  }
-  void setCycleStepNo(int cycleStepNo)
-  {
-    _cycleStepNo = cycleStepNo;
-  }
-  // GETTER:
-  String getDisplayString()
-  {
-    Serial.println(_displayString);
-    return _displayString;
-  }
-  void getCycleStepNo()
-  {
-    Serial.println(_cycleStepNo);
-  }
-
-private:
-  String _displayString = "n.a.";
-  int _cycleStepNo;
-};
-
-//*******************
 // CONCRETE CLASS I
 //*******************
 class StepWippenhebel : public CycleStep
