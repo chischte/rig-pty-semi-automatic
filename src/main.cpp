@@ -8,27 +8,6 @@
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
 //******************************************************************************
-// DEFINE NAMES AND SEQUENCE OF STEPS FOR THE MAIN CYCLE:
-//******************************************************************************
-enum mainCycleSteps
-{
-  WippenhebelZiehen,
-  BandklemmeLoesen,
-  SchlittenZurueckfahren,
-  BandVorschieben,
-  BandSchneiden,
-  BandKlemmen,
-  BandSpannen,
-  Schweissen,
-  endOfMainCycleEnum
-};
-byte numberOfMainCycleSteps = endOfMainCycleEnum;
-
-// DEFINE NAMES TO DISPLAY ON THE TOUCH SCREEN:
-String cycleName[] = {"WIPPENHEBEL", "KLEMME LOESEN", "ZURUECKFAHREN", "BAND VORSCHIEBEN",
-                      "SCHNEIDEN", "KLEMMEN", "SPANNEN", "SCHWEISSEN"};
-
-//******************************************************************************
 // DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
 //******************************************************************************
 enum counter
@@ -56,17 +35,17 @@ enum logger
   manualOff
 };
 
-String errorCode[] = { //
-    "n.a.",            //
-    "STEUERUNG EIN",   //
-    "AUTO RESET",      //
-    "AUTO PAUSE",      //
-    "AUTO STOP",       //
-    "BAND LEER",       //
-    "MANUELL START",   //
-    "MANUELL STOP"};   //
+String error_code[] = { //
+    "n.a.",             //
+    "STEUERUNG EIN",    //
+    "AUTO RESET",       //
+    "AUTO PAUSE",       //
+    "AUTO STOP",        //
+    "BAND LEER",        //
+    "MANUELL START",    //
+    "MANUELL STOP"};    //
 
-int loggerNoOfLogs = 50;
+int logger_no_of_logs = 50;
 
 //******************************************************************************
 // DECLARATION OF VARIABLES
@@ -79,8 +58,8 @@ int cycleTimeInSeconds = 30; // estimated value for the timout timer
 //******************************************************************************
 // GENERATE INSTANCES OF CLASSES:
 //******************************************************************************
-Cylinder SchlittenZylinder(5);
-Cylinder BandKlemmZylinder(6);
+Cylinder cylinder_schlitten(5);
+Cylinder cylinder_bandklemme(6);
 
 Insomnia errorBlinkTimer;
 unsigned long blinkDelay = 600;
@@ -89,8 +68,7 @@ Insomnia resetDelay;
 Insomnia coolingDelay;
 Insomnia nexResetButtonTimeout;
 
-StateController stateController(numberOfMainCycleSteps);
-
+StateController stateController;
 EEPROM_Counter eepromCounter;
 //******************************************************************************
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
@@ -99,16 +77,12 @@ EEPROM_Counter eepromCounter;
 class StepWippenhebel : public CycleStep
 {
 public:
-  String getDisplayString() override
+  String getDisplayString() { return "WIPPENHEBEL"; }
+  void doStuff()
   {
-    return "n.ddddda.";
-  }
-
-  void doStuff() override
-  {
-    SchlittenZylinder.stroke(1500, 1000);
+    cylinder_schlitten.stroke(1500, 1000);
     eepromCounter.setup(0, 1023, 20);
-    if (BandKlemmZylinder.stroke_completed())
+    if (cylinder_bandklemme.stroke_completed())
     {
       stateController.switchToNextStep();
     }
@@ -121,12 +95,8 @@ private:
 class StepBandKlemmen : public CycleStep
 {
 public:
-  String getDisplayString() override
-  {
-    return "n.ddddda.";
-  }
-
-  void doStuff() override
+  String getDisplayString() { return "KLEMMEN"; }
+  void doStuff()
   {
     Serial.println("Class II bytes me teeth");
   }
@@ -145,12 +115,9 @@ private:
 // Initialize the object count variable first:
 int CycleStep::objectCount = 0;
 // Create vector container
-std::vector<CycleStep *> pointers;
+std::vector<CycleStep *> cycleSteps;
 
 // POINTER TO OBJECT SOLUTION:
-
-// Get number of cycles from parent class:
-int noOfCycleSteps = CycleStep::objectCount;
 
 //*****************************************************************************
 
@@ -160,27 +127,28 @@ void setup()
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // THE SEQUENCE IS IMPORTANT!
   //------------------------------------------------
-  pointers.push_back(new StepWippenhebel);
-  pointers.push_back(new StepBandKlemmen);
+  cycleSteps.push_back(new StepWippenhebel);
+  cycleSteps.push_back(new StepBandKlemmen);
   //------------------------------------------------
+  // Get number of cycles from parent class:
+  int no_of_cycle_steps = CycleStep::objectCount;
+  stateController.setNumberOfSteps(no_of_cycle_steps);
   Serial.begin(115200);
   Serial.println(CycleStep::objectCount);
 
   // CREATE A SETUP ENTRY IN THE LOG:
-  stateController.setStepMode();
-  Serial.println("EXIT SETUP");
+    Serial.println("EXIT SETUP");
 }
 void loop()
 {
+  int no_of_cycle_steps = CycleStep::objectCount;
+  // TEST LOOP TO ITERATE THROUGH ALL CYCLE STEPS:
 
-  std::cout << "HERE COMES THE FOLLOWING:\n";
-  std::cout << "Dis doma fist: ...";
-  pointers[0]->doStuff();
-  Serial.println(pointers[0]->getDisplayString());
-
-  std::cout << "Dis doma second did: ...";
-  pointers[1]->doStuff();
-  std::cout << "...is Name was:" << pointers[1]->getDisplayString() << "\n";
-
-  delay(3000);
+  for (int i = 0; i < no_of_cycle_steps; i++)
+  {
+    std::cout << "CYCLE STEP I:";
+    cycleSteps[i]->doStuff();
+    Serial.println(cycleSteps[i]->getDisplayString());
+    delay(3000);
+  }
 }

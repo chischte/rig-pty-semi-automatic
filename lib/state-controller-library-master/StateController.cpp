@@ -10,6 +10,7 @@
 StateController::StateController(int numberOfSteps) {
   _numberOfSteps = numberOfSteps;
 }
+StateController::StateController() {}
 //***************************************************************************
 //LIBRARY FUNCTIONS:
 //***************************************************************************
@@ -29,6 +30,10 @@ void StateController::setStepMode() {
 
 bool StateController::stepMode() {
   return _stepMode;
+}
+
+void StateController::setNumberOfSteps(int numberOfSteps){
+   _numberOfSteps = numberOfSteps;
 }
 
 void StateController::setMachineRunningState(bool machineState) {
