@@ -82,10 +82,11 @@ public:
   void do_stuff()
   {
     cylinder_schlitten.stroke(1500, 1000);
-    eeprom_counter.setup(0, 1023, 20);
     if (cylinder_bandklemme.stroke_completed())
+    {
       Serial.println("Class I bytes ya tooth");
-    set_completed();
+      set_completed();
+    }
   }
 
 private:
@@ -119,34 +120,55 @@ void setup()
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
-  //------------------------------------------------
   cycle_steps.push_back(new Step_wippenhebel);
   cycle_steps.push_back(new Step_band_klemmen);
   //------------------------------------------------
-  // Get number of cycles from parent class:
+  // CONFIGURE THE STATE CONTROLLER:
   int no_of_cycle_steps = Cycle_step::objectCount;
   state_controller.setNumberOfSteps(no_of_cycle_steps);
   //------------------------------------------------
+  // SETUP COUNTER:
+  eeprom_counter.setup(0, 1023, counterNoOfValues);
+  //------------------------------------------------
   Serial.begin(115200);
   Serial.println("EXIT SETUP");
+  //------------------------------------------------
 }
 void loop()
 {
 
   // TODO:
   // Implement step/auto logic from bxt standard rig
-  // If smart, add timeout possibility to abstract cycle step class
-
-  // GET AND RUN CURRENT STEP:
-  int currentStep = state_controller.currentCycleStep();
-  std::cout << "NEXT STEP NUMBER: " << currentStep << "\n";
-  cycle_steps[currentStep]->do_stuff();
+  // Implement Nextion, make button state monitoring more elegant
+  // Implement sub step possibility
+  // Implement timeout possibility, if smart, to abstract cycle step class
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
-  if (cycle_steps[currentStep]->is_completed())
+  if (cycle_steps[state_controller.currentCycleStep()]->is_completed())
   {
+    int current_step = state_controller.currentCycleStep();
     Serial.println("STEP COMPLETED\n");
     state_controller.switchToNextStep();
+    std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
+    String display_string = cycle_steps[current_step]->get_display_string();
+    std::cout << "NEXT STEP NAME: " << display_string << "\n";
+    Serial.println(display_string);
   }
+
+  //IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
+  if (state_controller.stepSwitchHappened())
+  {
+    if (state_controller.stepMode())
+    {
+      state_controller.setMachineRunningState(false);
+    }
+  }
+
+  // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
+  //if (state_controller.machineRunning())
+  {
+    cycle_steps[state_controller.currentCycleStep()]->do_stuff();
+  }
+
   delay(1000);
 }
