@@ -87,6 +87,7 @@ public:
       stateController.switchToNextStep();
     }
     Serial.println("Class I bytes ya tooth");
+    set_solved();
   }
 
 private:
@@ -99,6 +100,7 @@ public:
   void doStuff()
   {
     Serial.println("Class II bytes me teeth");
+    set_solved();
   }
 
 private:
@@ -112,13 +114,11 @@ private:
 //  https://stackoverflow.com/questions/1579786/are-array-of-pointers-to-different-types-possible-in-c
 //  http://www.infobrother.com/Tutorial/C++/C++_Pointer_Object
 //******************************************************************************
+
 // Initialize the object count variable first:
 int CycleStep::objectCount = 0;
 // Create vector container
 std::vector<CycleStep *> cycleSteps;
-
-// POINTER TO OBJECT SOLUTION:
-
 //*****************************************************************************
 
 void setup()
@@ -133,24 +133,38 @@ void setup()
   // Get number of cycles from parent class:
   int no_of_cycle_steps = CycleStep::objectCount;
   stateController.setNumberOfSteps(no_of_cycle_steps);
+  //------------------------------------------------
   Serial.begin(115200);
-  Serial.println(CycleStep::objectCount);
-
-  // CREATE A SETUP ENTRY IN THE LOG:
-    Serial.println("EXIT SETUP");
+  Serial.println("EXIT SETUP");
 }
 void loop()
 {
   int no_of_cycle_steps = CycleStep::objectCount;
-  // TEST LOOP TO ITERATE THROUGH ALL CYCLE STEPS:
 
-  // COPY STEP AND AUTO MODE FROM BXT STANDARD RIG
-  
+  /*
+ // TEST LOOP TO ITERATE THROUGH ALL CYCLE STEPS:
   for (int i = 0; i < no_of_cycle_steps; i++)
   {
     std::cout << "CYCLE STEP I:";
     cycleSteps[i]->doStuff();
     Serial.println(cycleSteps[i]->getDisplayString());
-    delay(3000);
+    
   }
+*/
+
+  // TDOD: COPY STEP AND AUTO MODE FROM BXT STANDARD RIG
+
+  // GET AND RUN CURRENT STEP:
+   int currentStep = stateController.currentCycleStep();
+    cycleSteps[currentStep]->doStuff();
+
+  // WHEN STEP IS COMPLETED SWITCH TO NEXT STEP:
+  if (cycleSteps[currentStep]->is_completed())
+  {
+    Serial.println("STEP COMPLETED");
+    std::cout<<"STEP NUMBER:"<<stateController.currentCycleStep()<<"\n";
+    stateController.switchToNextStep();
+    std::cout<<"STEP NUMBER:"<<stateController.currentCycleStep()<<"\n";
+  }
+  delay(1000);
 }
