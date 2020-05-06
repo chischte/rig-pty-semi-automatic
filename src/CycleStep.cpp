@@ -1,9 +1,9 @@
-#include "Arduino.h"
+#include <ArduinoSTL.h>
 #include "CycleStep.h"
 
 Cycle_step::Cycle_step()
 {
-  objectCount++;
+  object_count++;
 }
 
 // SETTER:

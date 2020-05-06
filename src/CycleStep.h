@@ -1,12 +1,12 @@
 #ifndef CYCLESTEP_H
 #define CYCLESTEP_H
-#include "Arduino.h"
+#include <ArduinoSTL.h>
 
 class Cycle_step
 {
 public:
   // VARIABLES:
-  static int objectCount;
+  static int object_count;
 
   // FUNTIONS:
   Cycle_step();
@@ -16,7 +16,7 @@ public:
   void set_completed();
   // GETTER:
   bool is_completed();
-  virtual String get_display_string() = 0;
+  virtual char *get_display_string() = 0;
 
 private:
   // VARIABLES:

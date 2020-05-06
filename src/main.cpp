@@ -11,48 +11,21 @@
 //******************************************************************************
 enum counter
 {
-  longtimeCounter,  //
-  shorttimeCounter, //
-  coolingTime,      // [s]
-  endOfCounterEnum
+  longtime_counter,   //
+  shorttime_counter,  //
+  cooling_time,       // [s]
+  end_of_counter_enum // Keep this entry
 };
 
-int counterNoOfValues = endOfCounterEnum;
-
-//******************************************************************************
-// DEFINE NAMES AND SET UP VARIABLES FOR THE ERROR LOGGER:
-//******************************************************************************
-enum logger
-{
-  emptyLog, // marks empty logs
-  toolResetError,
-  shortTimeoutError,
-  longTimeoutError,
-  shutDownError,
-  magazineEmpty,
-  manualOn,
-  manualOff
-};
-
-String error_code[] = { //
-    "n.a.",             //
-    "STEUERUNG EIN",    //
-    "AUTO RESET",       //
-    "AUTO PAUSE",       //
-    "AUTO STOP",        //
-    "BAND LEER",        //
-    "MANUELL START",    //
-    "MANUELL STOP"};    //
-
-int logger_no_of_logs = 50;
+int counter_no_of_values = end_of_counter_enum;
 
 //******************************************************************************
 // DECLARATION OF VARIABLES
 //******************************************************************************
-bool strapDetected;
-bool errorBlinkState = false;
-byte timeoutDetected = 0;
-int cycleTimeInSeconds = 30; // estimated value for the timout timer
+bool strap_detected;
+bool error_blink_state = false;
+byte timeout_detected = 0;
+int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
 //******************************************************************************
 // GENERATE INSTANCES OF CLASSES:
@@ -60,14 +33,11 @@ int cycleTimeInSeconds = 30; // estimated value for the timout timer
 Cylinder cylinder_schlitten(5);
 Cylinder cylinder_bandklemme(6);
 
-Insomnia errorBlinkTimer;
-unsigned long blinkDelay = 600;
-Insomnia resetTimeout; // reset rig after 40 seconds inactivity
-Insomnia resetDelay;
-Insomnia coolingDelay;
-Insomnia nexResetButtonTimeout;
+Insomnia error_blink_timer;
+unsigned long blink_delay = 600;
+Insomnia nex_reset_button_timeout;
 
-StateController state_controller;
+State_controller state_controller;
 EEPROM_Counter eeprom_counter;
 //******************************************************************************
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
@@ -77,13 +47,18 @@ EEPROM_Counter eeprom_counter;
 class Step_wippenhebel : public Cycle_step
 {
 public:
-  String get_display_string() { return "WIPPENHEBEL"; }
+  char *get_display_string()
+  {
+    char *buf = (char *)malloc(20);
+    strcpy(buf, "WIPPENHEBEL");
+    return buf;
+  }
   void do_stuff()
   {
     cylinder_schlitten.stroke(1500, 1000);
     if (cylinder_bandklemme.stroke_completed())
     {
-      Serial.println("Class I bytes ya tooth");
+      std::cout << "Class I bytes ya tooth\n";
       set_completed();
     }
   }
@@ -92,25 +67,25 @@ private:
 };
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
-class Step_band_klemmen : public Cycle_step
-{
-public:
-  String get_display_string() { return "KLEMMEN"; }
-  void do_stuff()
-  {
-    Serial.println("Class II bytes me teeth");
-    set_completed();
-  }
+// class Step_band_klemmen : public Cycle_step
+// {
+// public:
+//   char* get_display_string() { return "KLEMMEN"; }
+//   void do_stuff()
+//   {
+//     Serial.println("Class II bytes me teeth");
+//     set_completed();
+//   }
 
-private:
-};
+// private:
+// };
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 //******************************************************************************
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
 //******************************************************************************
-int Cycle_step::objectCount = 0; // enable object counting
+int Cycle_step::object_count = 0; // enable object counting
 std::vector<Cycle_step *> cycle_steps;
 //*****************************************************************************
 
@@ -120,17 +95,18 @@ void setup()
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
   cycle_steps.push_back(new Step_wippenhebel);
-  cycle_steps.push_back(new Step_band_klemmen);
+  //cycle_steps.push_back(new Step_band_klemmen);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
-  int no_of_cycle_steps = Cycle_step::objectCount;
-  state_controller.setNumberOfSteps(no_of_cycle_steps);
+  int no_of_cycle_steps = Cycle_step::object_count;
+  state_controller.set_no_of_steps(no_of_cycle_steps);
   //------------------------------------------------
   // SETUP COUNTER:
-  eeprom_counter.setup(0, 1023, counterNoOfValues);
+  eeprom_counter.setup(0, 1023, counter_no_of_values);
   //------------------------------------------------
   Serial.begin(115200);
-  state_controller.setAutoMode();
+  state_controller.set_auto_mode();
+  state_controller.set_machine_running(1);
   Serial.println("EXIT SETUP");
   //------------------------------------------------
 }
@@ -138,36 +114,42 @@ void loop()
 {
 
   // TODO:
-  // Implement step/auto logic from bxt standard rig
+  // Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
   // Implement Nextion, make button state monitoring more elegant
   // Implement sub step possibility
   // Implement timeout possibility, if smart, to abstract cycle step class
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
-  if (cycle_steps[state_controller.currentCycleStep()]->is_completed())
+  if (cycle_steps[state_controller.get_current_step()]->is_completed())
   {
-    int current_step = state_controller.currentCycleStep();
-    state_controller.switchToNextStep();
-    String display_string = cycle_steps[current_step]->get_display_string();
-    Serial.println("STEP COMPLETED\n");
+    int current_step = state_controller.get_current_step();
+    state_controller.switch_to_next_step();
+
+    char *buf = cycle_steps[current_step]->get_display_string();
+    std::cout << "STEP COMPLETED \n";
     std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
-    std::cout << "NEXT STEP NAME: " << display_string << "\n";
-    Serial.println(display_string);
+    std::cout << "NEXT STEP NAME: " << buf << "\n";
   }
 
-  //IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
-  if (state_controller.stepSwitchHappened())
+  // RESET RIG IF RESET IS ACTIVATED:
+  if (state_controller.reset_mode_is_active())
   {
-    if (state_controller.stepMode())
+    //   reset_test_rig();
+  }
+
+  // IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
+  if (state_controller.step_switch_has_happend())
+  {
+    if (state_controller.step_mode())
     {
-      state_controller.setMachineRunningState(false);
+      state_controller.set_machine_running(false);
     }
   }
 
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
-  if (state_controller.machineRunning())
+  if (state_controller.machine_is_running())
   {
-    cycle_steps[state_controller.currentCycleStep()]->do_stuff();
+    cycle_steps[state_controller.get_current_step()]->do_stuff();
   }
 
   delay(1000);
