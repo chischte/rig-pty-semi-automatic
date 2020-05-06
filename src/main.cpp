@@ -144,6 +144,8 @@ void loop()
   int no_of_cycle_steps = CycleStep::objectCount;
   // TEST LOOP TO ITERATE THROUGH ALL CYCLE STEPS:
 
+  // COPY STEP AND AUTO MODE FROM BXT STANDARD RIG
+  
   for (int i = 0; i < no_of_cycle_steps; i++)
   {
     std::cout << "CYCLE STEP I:";
