@@ -9,3 +9,5 @@
 [submodule "lib/state-controller-library"]
 	path = lib/state-controller-library
 	url = https://github.com/chischte/state-controller-library.git
+[submodule "lib/cylinder-library"]
+	url = https://github.com/chischte/cylinder-library.git
