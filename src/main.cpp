@@ -68,36 +68,35 @@ Insomnia resetDelay;
 Insomnia coolingDelay;
 Insomnia nexResetButtonTimeout;
 
-StateController stateController;
-EEPROM_Counter eepromCounter;
+StateController state_controller;
+EEPROM_Counter eeprom_counter;
 //******************************************************************************
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
 //------------------------------------------------------------------------------
-class StepWippenhebel : public CycleStep
+//------------------------------------------------------------------------------
+class Step_wippenhebel : public Cycle_step
 {
 public:
-  String getDisplayString() { return "WIPPENHEBEL"; }
-  void doStuff()
+  String get_display_string() { return "WIPPENHEBEL"; }
+  void do_stuff()
   {
     cylinder_schlitten.stroke(1500, 1000);
-    eepromCounter.setup(0, 1023, 20);
+    eeprom_counter.setup(0, 1023, 20);
     if (cylinder_bandklemme.stroke_completed())
-    {
-      stateController.switchToNextStep();
-    }
-    Serial.println("Class I bytes ya tooth");
+      Serial.println("Class I bytes ya tooth");
     set_solved();
   }
 
 private:
 };
 //------------------------------------------------------------------------------
-class StepBandKlemmen : public CycleStep
+//------------------------------------------------------------------------------
+class Step_band_klemmen : public Cycle_step
 {
 public:
-  String getDisplayString() { return "KLEMMEN"; }
-  void doStuff()
+  String get_display_string() { return "KLEMMEN"; }
+  void do_stuff()
   {
     Serial.println("Class II bytes me teeth");
     set_solved();
@@ -105,66 +104,49 @@ public:
 
 private:
 };
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 
 //******************************************************************************
-// CREATE CYCLE STEPS OBJECTS AND STORE THEM IN AN ARRAY
-// TODO:
-//  READ LINKS:
-//  https://gamedev.stackexchange.com/questions/168841/c-create-array-of-multiple-types
-//  https://stackoverflow.com/questions/1579786/are-array-of-pointers-to-different-types-possible-in-c
-//  http://www.infobrother.com/Tutorial/C++/C++_Pointer_Object
+// CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
 //******************************************************************************
-
-// Initialize the object count variable first:
-int CycleStep::objectCount = 0;
-// Create vector container
-std::vector<CycleStep *> cycleSteps;
+int Cycle_step::objectCount = 0; // enable object counting
+std::vector<Cycle_step *> cycle_steps;
 //*****************************************************************************
 
 void setup()
 {
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
-  // THE SEQUENCE IS IMPORTANT!
+  // PUSH SEQUENCE = CYCLE SEQUENCE!
   //------------------------------------------------
-  cycleSteps.push_back(new StepWippenhebel);
-  cycleSteps.push_back(new StepBandKlemmen);
+  cycle_steps.push_back(new Step_wippenhebel);
+  cycle_steps.push_back(new Step_band_klemmen);
   //------------------------------------------------
   // Get number of cycles from parent class:
-  int no_of_cycle_steps = CycleStep::objectCount;
-  stateController.setNumberOfSteps(no_of_cycle_steps);
+  int no_of_cycle_steps = Cycle_step::objectCount;
+  state_controller.setNumberOfSteps(no_of_cycle_steps);
   //------------------------------------------------
   Serial.begin(115200);
   Serial.println("EXIT SETUP");
 }
 void loop()
 {
-  int no_of_cycle_steps = CycleStep::objectCount;
 
-  /*
- // TEST LOOP TO ITERATE THROUGH ALL CYCLE STEPS:
-  for (int i = 0; i < no_of_cycle_steps; i++)
-  {
-    std::cout << "CYCLE STEP I:";
-    cycleSteps[i]->doStuff();
-    Serial.println(cycleSteps[i]->getDisplayString());
-    
-  }
-*/
-
-  // TDOD: COPY STEP AND AUTO MODE FROM BXT STANDARD RIG
+  // TODO:
+  // Implement step/auto logic from bxt standard rig
+  // If smart, add timeout possibility to abstract cycle step class
 
   // GET AND RUN CURRENT STEP:
-   int currentStep = stateController.currentCycleStep();
-    cycleSteps[currentStep]->doStuff();
+  int currentStep = state_controller.currentCycleStep();
+  std::cout << "STEP NUMBER: " << currentStep << "\n";
+  cycle_steps[currentStep]->do_stuff();
 
-  // WHEN STEP IS COMPLETED SWITCH TO NEXT STEP:
-  if (cycleSteps[currentStep]->is_completed())
+  // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
+  if (cycle_steps[currentStep]->is_completed())
   {
     Serial.println("STEP COMPLETED");
-    std::cout<<"STEP NUMBER:"<<stateController.currentCycleStep()<<"\n";
-    stateController.switchToNextStep();
-    std::cout<<"STEP NUMBER:"<<stateController.currentCycleStep()<<"\n";
+    state_controller.switchToNextStep();
   }
   delay(1000);
 }

@@ -2,21 +2,21 @@
 #define CYCLESTEP_H
 #include "Arduino.h"
 
-class CycleStep
+class Cycle_step
 {
 public:
   // VARIABLES:
   static int objectCount;
 
   // FUNTIONS:
-  CycleStep();
+  Cycle_step();
   // Every derived class must implement this method:
-  virtual void doStuff() = 0;
+  virtual void do_stuff() = 0;
   // SETTER:
   void set_solved();
   // GETTER:
   bool is_completed();
-  virtual String getDisplayString() = 0;
+  virtual String get_display_string() = 0;
 
 private:
   // VARIABLES:
