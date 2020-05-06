@@ -85,7 +85,7 @@ public:
     eeprom_counter.setup(0, 1023, 20);
     if (cylinder_bandklemme.stroke_completed())
       Serial.println("Class I bytes ya tooth");
-    set_solved();
+    set_completed();
   }
 
 private:
@@ -99,7 +99,7 @@ public:
   void do_stuff()
   {
     Serial.println("Class II bytes me teeth");
-    set_solved();
+    set_completed();
   }
 
 private:

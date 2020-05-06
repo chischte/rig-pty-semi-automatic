@@ -13,7 +13,7 @@ public:
   // Every derived class must implement this method:
   virtual void do_stuff() = 0;
   // SETTER:
-  void set_solved();
+  void set_completed();
   // GETTER:
   bool is_completed();
   virtual String get_display_string() = 0;

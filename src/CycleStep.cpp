@@ -7,7 +7,7 @@ Cycle_step::Cycle_step()
 }
 
 // SETTER:
-void Cycle_step::set_solved()
+void Cycle_step::set_completed()
 {
   _completed = true;
 }
