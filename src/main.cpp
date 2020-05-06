@@ -3,7 +3,6 @@
 #include <Debounce.h>        // https://github.com/chischte/debounce-library
 #include <Insomnia.h>        // https://github.com/chischte/insomnia-delay-library
 #include <EEPROM_Counter.h>  // https://github.com/chischte/eeprom-counter-library
-#include <EEPROM_Logger.h>   // https://github.com/chischte/eeprom-logger-library.git
 #include <CycleStep.h>       //
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
@@ -131,6 +130,7 @@ void setup()
   eeprom_counter.setup(0, 1023, counterNoOfValues);
   //------------------------------------------------
   Serial.begin(115200);
+  state_controller.setAutoMode();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
 }
@@ -147,10 +147,10 @@ void loop()
   if (cycle_steps[state_controller.currentCycleStep()]->is_completed())
   {
     int current_step = state_controller.currentCycleStep();
-    Serial.println("STEP COMPLETED\n");
     state_controller.switchToNextStep();
-    std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
     String display_string = cycle_steps[current_step]->get_display_string();
+    Serial.println("STEP COMPLETED\n");
+    std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
     std::cout << "NEXT STEP NAME: " << display_string << "\n";
     Serial.println(display_string);
   }
@@ -165,7 +165,7 @@ void loop()
   }
 
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
-  //if (state_controller.machineRunning())
+  if (state_controller.machineRunning())
   {
     cycle_steps[state_controller.currentCycleStep()]->do_stuff();
   }
