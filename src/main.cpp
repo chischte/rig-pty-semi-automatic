@@ -139,13 +139,13 @@ void loop()
 
   // GET AND RUN CURRENT STEP:
   int currentStep = state_controller.currentCycleStep();
-  std::cout << "STEP NUMBER: " << currentStep << "\n";
+  std::cout << "NEXT STEP NUMBER: " << currentStep << "\n";
   cycle_steps[currentStep]->do_stuff();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[currentStep]->is_completed())
   {
-    Serial.println("STEP COMPLETED");
+    Serial.println("STEP COMPLETED\n");
     state_controller.switchToNextStep();
   }
   delay(1000);
