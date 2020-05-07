@@ -90,7 +90,7 @@ NULL //String terminated
 
 // KNOBS AND POTENTIOMETERS:
 const byte TEST_SWITCH_PIN = 2;
-Debounce testSwitch(TEST_SWITCH_PIN);
+Debounce test_switch(TEST_SWITCH_PIN);
 const byte MOTOR_RELAY_PIN = 50;
 
 // SENSORS:
@@ -328,6 +328,30 @@ void loop()
     cycle_steps[state_controller.get_current_step()]->do_stuff();
     std::cout << "---------------\n\n";
   }
+
+
+
+
+
+  // GET SIGNAL FROM TEST SWITCH AND COUNT IT:
+  bool debouncedButtonState = test_switch.requestButtonState();
+  if (previousButtonState != debouncedButtonState) {
+    if (debouncedButtonState == LOW) {
+      eeprom_counter.countOneUp(longtime_counter);
+      updateDisplayCounter();
+      
+    }
+    previousButtonState = debouncedButtonState;
+  }
+
+
+
+
+
+
+
+
+
 
   delay(1000);
 }
