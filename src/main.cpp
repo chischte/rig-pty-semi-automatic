@@ -114,7 +114,7 @@ void setup()
   //------------------------------------------------
   Serial.begin(115200);
   state_controller.set_auto_mode();
-  state_controller.set_machine_running(1);
+  state_controller.set_machine_running();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
 }
