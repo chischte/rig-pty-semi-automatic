@@ -42,16 +42,24 @@ EEPROM_Counter eeprom_counter;
 //******************************************************************************
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
+// TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
+// Step_feed_upper_strap
+// Step_feed_lower_strap
+// Step_apply_tension
+// -->include timeout function
+// -->manually activate brake
+// Step_release_tension
+// Step_cut_strap
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 class Step_wippenhebel : public Cycle_step
 {
 public:
-  char *get_display_string()
+  char *get_display_text()
   {
-    char *buf = (char *)malloc(20);
-    strcpy(buf, "WIPPENHEBEL");
-    return buf;
+    char *display_text = (char *)malloc(20);
+    strcpy(display_text, "WIPPENHEBEL");
+    return display_text;
   }
   void do_stuff()
   {
@@ -124,11 +132,9 @@ void loop()
   {
     int current_step = state_controller.get_current_step();
     state_controller.switch_to_next_step();
-
-    char *buf = cycle_steps[current_step]->get_display_string();
-    std::cout << "STEP COMPLETED \n";
+    char *display_text = cycle_steps[current_step]->get_display_text();
     std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
-    std::cout << "NEXT STEP NAME: " << buf << "\n";
+    std::cout << "NEXT STEP NAME: " << display_text << "\n";
   }
 
   // RESET RIG IF RESET IS ACTIVATED:
@@ -149,7 +155,9 @@ void loop()
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
   if (state_controller.machine_is_running())
   {
+    std::cout << "THIS IS WHAT IT DOES: ";
     cycle_steps[state_controller.get_current_step()]->do_stuff();
+    std::cout << "---------------\n\n";
   }
 
   delay(1000);

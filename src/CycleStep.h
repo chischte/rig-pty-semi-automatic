@@ -16,7 +16,7 @@ public:
   void set_completed();
   // GETTER:
   bool is_completed();
-  virtual char *get_display_string() = 0;
+  virtual char *get_display_text() = 0;
 
 private:
   // VARIABLES:
