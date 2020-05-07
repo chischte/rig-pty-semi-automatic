@@ -11,7 +11,8 @@
  * *****************************************************************************
  */
 
-
+// INSTALL PIO NEXTION LIBRARY
+// INSTALL PIO ADAFRUIT SD LIBRARY
 #include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
 #include <Cylinder.h>        // https://github.com/chischte/cylinder-library
 #include <Debounce.h>        // https://github.com/chischte/debounce-library
@@ -19,6 +20,7 @@
 #include <EEPROM_Counter.h>  // https://github.com/chischte/eeprom-counter-library
 #include <CycleStep.h>       //
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
+#include <Nextion.h>         // https://github.com/itead/ITEADLIB_Arduino_Nextion
 
 //******************************************************************************
 // DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
