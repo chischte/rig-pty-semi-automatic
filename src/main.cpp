@@ -1,3 +1,17 @@
+/*
+ * *****************************************************************************
+ * RIG TEMPLATR
+ * *****************************************************************************
+ * Program for an endurance test of a mechanical switch
+ * The switch will be pushed 100'000 times or more.
+ * The number of pushes will be counted and displayed.
+ * *****************************************************************************
+ * Michael Wettstein
+ * May 2020, Zürich
+ * *****************************************************************************
+ */
+
+
 #include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
 #include <Cylinder.h>        // https://github.com/chischte/cylinder-library
 #include <Debounce.h>        // https://github.com/chischte/debounce-library
