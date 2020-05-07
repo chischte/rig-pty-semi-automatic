@@ -11,16 +11,18 @@
  * *****************************************************************************
  */
 
-// INSTALL PIO NEXTION LIBRARY
-// INSTALL PIO ADAFRUIT SD LIBRARY
+
 #include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
+//#include <Controllino.h>     // PIO Controllino Library
+#include <ContAlias.h>       // Aliases when using an Arduino instead of a Controllino
+#include <SD.h>              // PIO Adafruit SD Library
 #include <Cylinder.h>        // https://github.com/chischte/cylinder-library
 #include <Debounce.h>        // https://github.com/chischte/debounce-library
 #include <Insomnia.h>        // https://github.com/chischte/insomnia-delay-library
 #include <EEPROM_Counter.h>  // https://github.com/chischte/eeprom-counter-library
 #include <CycleStep.h>       //
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
-#include <Nextion.h>         // https://github.com/itead/ITEADLIB_Arduino_Nextion
+#include <Nextion.h>         // PIO Nextion Library
 
 //******************************************************************************
 // DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
@@ -46,8 +48,8 @@ int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 //******************************************************************************
 // GENERATE INSTANCES OF CLASSES:
 //******************************************************************************
-Cylinder cylinder_schlitten(5);
-Cylinder cylinder_bandklemme(6);
+Cylinder cylinder_schlitten(CONTROLLINO_D5);
+Cylinder cylinder_bandklemme(CONTROLLINO_D7);
 
 Insomnia error_blink_timer;
 unsigned long blink_delay = 600;
