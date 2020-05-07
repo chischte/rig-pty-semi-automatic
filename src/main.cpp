@@ -31,7 +31,7 @@ enum counter
 {
   longtime_counter,   //
   shorttime_counter,  //
-  cooling_time,       // [s]
+  switch_counter,       // [s]
   end_of_counter_enum // Keep this entry
 };
 
@@ -57,6 +57,152 @@ Insomnia nex_reset_button_timeout;
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
+
+//******************************************************************************
+// NEXTION DISPLAY - DECLARATION OF VARIABLES
+//******************************************************************************
+bool resetStopwatchActive = false;
+bool nextionPlayPauseButtonState;
+bool counterReseted = false;
+int currentPage = 0;
+unsigned long counterResetStopwatch;
+char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
+//*****************************************************************************
+//*****************************************************************************
+// NEXTION DISPLAY - DECLARATION OF OBJECTS TO BE READ
+//*****************************************************************************
+// PAGE 0:
+NexDSButton nex_switch_play_pause = NexDSButton(0, 2, "bt0");
+//*****************************************************************************
+//*****************************************************************************
+// NEXTION DISPLAY - TOUCH EVENT LIST
+//*****************************************************************************
+NexTouch *nex_listen_list[] = { &nex_switch_play_pause,
+
+NULL //String terminated
+        };
+//*****************************************************************************
+//*****************************************************************************
+
+
+
+
+
+// KNOBS AND POTENTIOMETERS:
+const byte TEST_SWITCH_PIN = 2;
+Debounce testSwitch(TEST_SWITCH_PIN);
+const byte MOTOR_RELAY_PIN = 50;
+
+// SENSORS:
+// n.a.
+
+// OTHER VARIABLES:
+bool previousButtonState;
+bool previousMachineState;
+bool machineRunning = false;
+bool buttonBlinkEnabled = false;
+
+
+
+
+void send_to_nextion() {
+  Serial2.write(0xff);
+  Serial2.write(0xff);
+  Serial2.write(0xff);
+}
+
+
+//*****************************************************************************
+void updateDisplayCounter() {
+  long newValue = eeprom_counter.getValue(longtime_counter);
+  Serial2.print("t0.txt=");
+  Serial2.print("\"");
+  Serial2.print(newValue);
+  Serial2.print("\"");
+  send_to_nextion();
+}
+
+//*****************************************************************************
+// NEXTION DISPLAY - TOUCH EVENT FUNCTIONS
+//*****************************************************************************
+
+void nex_switch_play_pausePushCallback(void *ptr) {
+  counterResetStopwatch = millis();
+  resetStopwatchActive = true;
+}
+
+void nex_switch_play_pausePopCallback(void *ptr) {
+
+  if (counterReseted == false) {
+    machineRunning = !machineRunning;
+  } else {
+    //counter has been reseted
+    //change of machine state did not happen,
+    //therefore switch the button layout back:
+    Serial2.print("click bt0,1");        // click button
+    send_to_nextion();
+    counterReseted = false; // counter reset steps completed
+  }
+  resetStopwatchActive = false;
+}
+
+
+
+
+//*****************************************************************************
+void nextionSetup()
+//*****************************************************************************
+{
+  Serial.println("START OF NEXTION SETUP");
+  Serial2.begin(9600);  // Start serial comunication at baud=9600
+
+  //*****************************************************************************
+  // NEXTION DISPLAY - REGISTER THE EVENT CALLBACK FUNCTIONS
+  //*****************************************************************************
+  //*****PUSH::
+  // n.a.
+
+  //*****PUSH+POP:
+  nex_switch_play_pause.attachPush(nex_switch_play_pausePushCallback);
+  nex_switch_play_pause.attachPop(nex_switch_play_pausePopCallback);
+  //*****************************************************************************
+  delay(2000);
+  send_to_nextion();
+
+  // TOGGLE APPEARANCE OF PLAY/PAUSE BUTTON:
+  Serial2.print("click bt0,1");        // click button
+  send_to_nextion();
+
+  Serial.println("END OF NEXTION SETUP");
+
+}  // END OF NEXTION SETUP
+
+//*****************************************************************************
+void nextionLoop()
+//*****************************************************************************
+{
+  nexLoop(nex_listen_list); //check for any touch event
+
+  if (currentPage == 0) {
+    //********************************
+    // PAGE 0:
+    //********************************
+    // RESET COUNTER:
+    if (resetStopwatchActive == true) {
+      if (millis() - counterResetStopwatch > 3000) {
+        eeprom_counter.set(longtime_counter, 0);
+        updateDisplayCounter();
+        counterReseted = true;
+      }
+    }
+  }
+}    //END OF NEXTION LOOP
+
+
+//*****************************************************************************
+// END OF TOUCH EVENT FUNCTIONS
+//*****************************************************************************
+
 //******************************************************************************
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
@@ -135,6 +281,7 @@ void setup()
   state_controller.set_machine_running();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
+   nextionSetup();
 }
 void loop()
 {
@@ -145,6 +292,9 @@ void loop()
   // Implement Nextion, make button state monitoring more elegant
   // Implement sub step possibility
   // Implement timeout possibility, if smart, to abstract cycle step class
+
+   // GET INFOS FROM TOUCH DISPLAY:
+  nextionLoop();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed())
