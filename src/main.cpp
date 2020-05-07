@@ -13,16 +13,16 @@
 
 
 #include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
-//#include <Controllino.h>     // PIO Controllino Library
-#include <ContAlias.h>       // Aliases when using an Arduino instead of a Controllino
+//#include <Controllino.h>   // PIO Controllino Library // Comment out when using an Arduino
+#include <Nextion.h>         // PIO Nextion Library
 #include <SD.h>              // PIO Adafruit SD Library
+#include <AliasColino.h>     // Aliases when using an Arduino instead of a Controllino
 #include <Cylinder.h>        // https://github.com/chischte/cylinder-library
 #include <Debounce.h>        // https://github.com/chischte/debounce-library
 #include <Insomnia.h>        // https://github.com/chischte/insomnia-delay-library
 #include <EEPROM_Counter.h>  // https://github.com/chischte/eeprom-counter-library
-#include <CycleStep.h>       //
+#include <CycleStep.h>       // TODO ADD TO LIBRARY
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
-#include <Nextion.h>         // PIO Nextion Library
 
 //******************************************************************************
 // DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
