@@ -122,6 +122,7 @@ void loop()
 {
 
   // TODO:
+  // Fix bug picture does not show in README.md
   // Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
   // Implement Nextion, make button state monitoring more elegant
   // Implement sub step possibility
@@ -146,7 +147,7 @@ void loop()
   // IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
   if (state_controller.step_switch_has_happend())
   {
-    if (state_controller.step_mode())
+    if (state_controller.is_in_step_mode())
     {
       state_controller.set_machine_running(false);
     }
