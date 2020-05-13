@@ -27,8 +27,8 @@ enum counter
 {
   longtime_counter,   //
   shorttime_counter,  //
-  switch_counter,       // [s]
-  end_of_counter_enum // Keep this entry
+  bandvorschub_oben_counter,       // [s]
+  bandvorschub_unten_counter // Keep this entry
 };
 int counter_no_of_values = end_of_counter_enum;
 
@@ -48,11 +48,9 @@ Debounce EndSwitchLeft(CONTROLLINO_A2);
 unsigned long blink_delay = 600;
 Insomnia nex_reset_button_timeout;
 Insomnia errorBlinkTimer;
-unsigned long blinkDelay = 600;
 Insomnia resetTimeout; // reset rig after 40 seconds inactivity
-Insomnia resetDelay;
-Insomnia coolingDelay;
-Insomnia nex_reset_button_timeout;
+Insomnia reset_delay;
+
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
@@ -91,7 +89,7 @@ NexTouch *nex_listen_list[] = { //
     // PAGE 0:
     &nex_page_0,
     // PAGE 1 LEFT:
-    &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle, &button_play_puse_ds,
+    &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle, &button_play_pause_ds,
     &button_modeswitch_ds,
     // PAGE 1 RIGHT:
     &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
@@ -113,6 +111,7 @@ Debounce test_switch(TEST_SWITCH_PIN);
 const byte MOTOR_RELAY_PIN = 50;
 
 // NEXTION VARIABLES
+int current_page=0;
 bool reset_stopwatch_is_active;
 unsigned int stoppedButtonPushtime;
 long nex_prev_bandvorschub_oben;
@@ -162,8 +161,8 @@ void resetCylinderStates()
 void stopTestRig()
 {
   resetCylinderStates();
-  state_controller.setStepMode();
-  state_controller.setMachineRunningState(false);
+  state_controller.set_step_mode();
+  state_controller.set_machine_stop();
 }
 
 void resetTestRig()
@@ -317,7 +316,7 @@ void button_modeswitch_ds_push(void *ptr)
   {
     state_controller.setAutoMode();
   }
-  nex_prev_step_mode = state_controller.stepMode();
+  nex_prev_step_mode = state_controller.set_step_mode();
 }
 void button_stepback_push(void *ptr)
 {
@@ -429,7 +428,7 @@ void button_slider_1_right_push(void *ptr)
 //*************************************************
 void button_reset_shorttime_counter_push(void *ptr)
 {
-  eeprom_counter.set(shorttimeCounter, 0);
+  eeprom_counter.set(shorttime_counter, 0);
 
   // RESET LONGTIME COUNTER IF RESET BUTTON IS PRESSED LONG ENOUGH:
   counter_reset_stopwatch = millis();
@@ -439,34 +438,7 @@ void button_reset_shorttime_counter_pop(void *ptr)
 {
   resetStopwatchActive = false;
 }
-//*************************************************
-// TOUCH EVENT FUNCTIONS PAGE 3 - ERROR LOG
-//*************************************************
-void nexButNextLogPushCallback(void *ptr)
-{
-  static byte noOfLogsPerPage = 10;
-  byte maxLogPage = loggerNoOfLogs / noOfLogsPerPage;
-  if (errorLogPage < (maxLogPage - 1))
-  {
-    errorLogPage++;
-    printLogPage();
-  }
-}
-void nexButResetLogPushCallback(void *ptr)
-{
-  nex_reset_button_timeout.setTime(1500);
-  nex_reset_button_timeout.setActive(1);
-}
-void nexButResetLogPopCallback(void *ptr)
-{
-  nex_reset_button_timeout.setActive(0);
-}
-void nexButPrevLogPushCallback(void *ptr)
-{
-  if (errorLogPage > 0)
-    errorLogPage--;
-  printLogPage();
-}
+
 //*************************************************
 // TOUCH EVENT FUNCTIONS PAGE CHANGES
 //*************************************************
@@ -480,7 +452,7 @@ void page1_push(void *ptr)
   hideInfoField();
 
   // REFRESH BUTTON STATES:
-  nex_prev_cycle_step = !state_controller.currentCycleStep();
+  nex_prev_cycle_step = !state_controller.get_current_step());
   nex_prev_step_mode = true;
   nex_state_entlueftung = 0;
   nex_state_motorbremse = 0;
@@ -526,7 +498,7 @@ void nextionSetup()
   button_previous_step.attachPush(button_stepback_push);
   button_next_step.attachPush(button_next_step_push);
   button_modeswitch_ds.attachPush(button_modeswitch_ds_push);
-  button_play_puse_ds.attachPush(button_play_pause_ds_push);
+  button_play_pause_ds.attachPush(button_play_pause_ds_push);
   button_klemmen_ds.attachPush(button_klemmen_ds_pop);
   button_entlueften_ds.attachPush(button_entlueften_ds_push);
   // PAGE 1 PUSH AND POP:
@@ -558,6 +530,7 @@ void nextionSetup()
 //*****************************************************************************
 void nextionLoop()
 //*****************************************************************************
+
 {
   nexLoop(nex_listen_list); // check for any touch event
 
@@ -568,39 +541,29 @@ void nextionLoop()
   {
 
     // UPDATE CYCLE NAME:
-    if (nex_prev_cycle_step != state_controller.currentCycleStep())
+    if (nex_prev_cycle_step != state_controller.get_current_step())
     {
-      nex_prev_cycle_step = state_controller.currentCycleStep();
+      nex_prev_cycle_step = state_controller.get_current_step();
       print_on_text_field(
-          (state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
+          //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
     }
     // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
-    if (nex_state_machine_running != state_controller.machineRunning())
+    if (nex_state_machine_running != state_controller.machine_is_running())
     {
       Serial2.print("click bt0,1");
       send_to_nextion();
-      nex_state_machine_running = state_controller.machineRunning();
+      nex_state_machine_running = state_controller.machine_is_running();
     }
 
     // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
-    if (nex_prev_step_mode != state_controller.stepMode())
+    if (nex_prev_step_mode != state_controller.is_in_step_mode())
     {
       Serial2.print("click bt1,1");
       send_to_nextion();
-      nex_prev_step_mode = state_controller.stepMode();
+      nex_prev_step_mode = state_controller.is_in_step_mode();
     }
 
-    // DISPLAY COOLING TIME:
-    if (state_controller.machineRunning())
-    {
-      if (state_controller.currentCycleStep() == Schweissen)
-      {
-
-        int remainingPause = coolingDelay.remainingDelayTime() / 1000;
-        print_on_text_field(String(remainingPause) + " s", "t4");
-      }
-    }
-
+  
     //*******************
     // PAGE 1 - RIGHT SIDE:
     //*******************
@@ -687,7 +650,7 @@ void nextionLoop()
   if (current_page == 2)
   {
 
-    if (nex_prev_bandvorschub_oben != eeprom_counter.getValue(coolingTime))
+    if (nex_prev_bandvorschub_oben != eeprom_counter.getValue(bandvorschub_oben_counter))
     {
       print_on_text_field(String(eeprom_counter.getValue(coolingTime)) + " s", "t4");
       nex_prev_bandvorschub_oben = eeprom_counter.getValue(coolingTime);
@@ -695,44 +658,27 @@ void nextionLoop()
     //*******************
     // PAGE 2 - RIGHT SIDE
     //*******************
-    if (nex_prev_longtime_counter != eeprom_counter.getValue(longtimeCounter))
+    if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter))
     {
 
-      print_on_text_field(String(eeprom_counter.getValue(longtimeCounter)), "t10");
-      //PrintOnTextField((eepromCounter.getValue(longtimeCounter) + ("")), "t10");
-      nex_prev_longtime_counter = eeprom_counter.getValue(longtimeCounter);
+      print_on_text_field(String(eeprom_counter.getValue(longtime_counter)), "t10");
+      //PrintOnTextField((eepromCounter.getValue(longtime_counter) + ("")), "t10");
+      nex_prev_longtime_counter = eeprom_counter.getValue(longtime_counter);
     }
-    if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttimeCounter))
+    if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttime_counter))
     {
-      print_on_text_field(String(eeprom_counter.getValue(shorttimeCounter)), "t12");
-      nex_prev_shorttime_counter = eeprom_counter.getValue(shorttimeCounter);
+      print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)), "t12");
+      nex_prev_shorttime_counter = eeprom_counter.getValue(shorttime_counter);
     }
-    if (resetStopwatchActive)
+    if (reset_stopwatch_active)
     {
       if (millis() - counter_reset_stopwatch > 5000)
       {
-        eeprom_counter.set(longtimeCounter, 0);
+        eeprom_counter.set(longtime_counter, 0);
       }
     }
   } // END PAGE 2
-
-  //*******************
-  // PAGE 3 - ERROR LOG:
-  //*******************
-  if (current_page == 3)
-  {
-    // RESET ERROR LOGS WITH LONG BUTTON PUSH:
-    if (nex_reset_button_timeout.active())
-    { // returns true if timeout is active
-      if (nex_reset_button_timeout.timedOut())
-      { // returns true if timeout time has been reached
-        errorLogger.setAllZero();
-        errorLogPage = 0;
-        printLogPage();
-        nex_reset_button_timeout.setActive(0);
-      }
-    }
-  } // END PAGE 3
+  
 } // END OF NEXTION LOOP
 //*****************************************************************************
 
