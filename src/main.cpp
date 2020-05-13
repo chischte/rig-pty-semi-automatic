@@ -508,34 +508,7 @@ void setupEventCallbackFunctions(){
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
   }
 //*****************************************************************************
-void nextionSetup()
-//*****************************************************************************
-{
-  Serial2.begin(9600);
-
-  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
-  send_to_nextion(); // needed for unknown reasons
-  Serial2.print("rest");
-  send_to_nextion();
-
-  setupEventCallbackFunctions();
-  
-  delay(2000);
-  sendCommand("page 1"); // switch display to page x
-  send_to_nextion();
-} 
-//*****************************************************************************
-void nextionLoop()
-//*****************************************************************************
-
-{
-  nexLoop(nex_listen_list); // check for any touch event
-
-  //*******************
-  // PAGE 1 - LEFT SIDE:
-  //*******************
-  if (current_page == 1)
-  {
+void display_loop_page_1_left_side(){
 
     // UPDATE CYCLE NAME:
     if (nex_prev_cycle_step != state_controller.get_current_step())
@@ -559,8 +532,9 @@ void nextionLoop()
       send_to_nextion();
       nex_prev_step_mode = state_controller.is_in_step_mode();
     }
+}
+void display_loop_page_1_right_side(){
 
-  
     //*******************
     // PAGE 1 - RIGHT SIDE:
     //*******************
@@ -639,13 +613,12 @@ void nextionLoop()
       send_to_nextion();
       nex_state_motor_unten = motor_band_unten.request_state();
     }
-  } // END PAGE 1
+}
+void display_loop_page_2_left_side(){
 
-  //*******************
-  // PAGE 2 - LEFT SIDE
-  //*******************
-  if (current_page == 2)
-  {
+}
+void display_loop_page_2_right_side(){
+ {
 
      //*******************
     // PAGE 2 - RIGHT SIDE
@@ -670,8 +643,39 @@ void nextionLoop()
       }
     }
   } // END PAGE 2
+}
+//*****************************************************************************
+void nextionSetup(){
+//*****************************************************************************
+  Serial2.begin(9600);
+
+  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
+  send_to_nextion(); // needed for unknown reasons
+  Serial2.print("rest");
+  send_to_nextion();
+
+  setupEventCallbackFunctions();
   
-} // END OF NEXTION LOOP
+  delay(2000);
+  sendCommand("page 1"); // switch display to page x
+  send_to_nextion();
+} 
+//*****************************************************************************
+void nextionLoop(){
+//*****************************************************************************
+
+  nexLoop(nex_listen_list); // check for any touch event
+
+  if (current_page == 1) {
+    display_loop_page_2_left_side();
+    display_loop_page_2_right_side();
+  }
+
+   if (current_page == 2){
+     display_loop_page_2_left_side();
+     display_loop_page_2_right_side();
+  }
+}
 //*****************************************************************************
 
 // CLASSES FOR THE MAIN CYCLE STEPS
