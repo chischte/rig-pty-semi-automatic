@@ -63,13 +63,30 @@ const byte TEST_SWITCH_PIN = 2;
 Debounce test_switch(TEST_SWITCH_PIN);
 const byte MOTOR_RELAY_PIN = 50;
 
-// NEXTION VARIABLES AND NEXTION STATE CONTROLLER BOOLEANS
-bool resetStopwatchActive = false;
+// NEXTION VARIABLES
+bool reset_stopwatch_is_active;
+unsigned int stoppedButtonPushtime;
+long nex_prev_bandvorschub_oben;
+long nex_prev_shorttime_counter;
+long nex_prev_longtime_counter;
+long buttonPushStopwatch;
+long counter_reset_stopwatch;
+byte nex_prev_cycle_step;
+byte errorLogPage = 0;
 bool nextionPlayPauseButtonState;
 bool counterReseted = false;
 int currentPage = 0;
 unsigned long counterResetStopwatch;
 char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
+// NEXTION SWITCHSTATES
+bool nex_state_entlueftung;
+bool nex_state_motorbremse;
+bool nex_motor_oben;
+bool nex_state_schlitten;
+bool nex_state_messer;
+bool nex_state_machine_running;
+bool nex_state_motor_unten;
+bool nex_prev_step_mode = true;
 
 // SENSORS:
 // n.a.
@@ -99,7 +116,7 @@ void updateDisplayCounter() {
 
 void nex_switch_play_pausePushCallback(void *ptr) {
   counterResetStopwatch = millis();
-  resetStopwatchActive = true;
+  reset_stopwatch_is_active = true;
 }
 
 void nex_switch_play_pausePopCallback(void *ptr) {
@@ -114,7 +131,7 @@ void nex_switch_play_pausePopCallback(void *ptr) {
     send_to_nextion();
     counterReseted = false; // counter reset steps completed
   }
-  resetStopwatchActive = false;
+  reset_stopwatch_is_active = false;
 }
 
 //*****************************************************************************
@@ -155,7 +172,7 @@ void nextionLoop()
     // PAGE 0:
     //********************************
     // RESET COUNTER:
-    if (resetStopwatchActive == true) {
+    if (reset_stopwatch_is_active == true) {
       if (millis() - counterResetStopwatch > 3000) {
         eeprom_counter.set(longtime_counter, 0);
         updateDisplayCounter();
