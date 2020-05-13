@@ -27,8 +27,9 @@ enum counter
 {
   longtime_counter,   //
   shorttime_counter,  //
-  bandvorschub_oben_counter,       // [s]
-  bandvorschub_unten_counter // Keep this entry
+  bandvorschub_oben,  // [mm]
+  bandvorschub_unten, // [mm]
+  end_of_counter_enum // Keep this entry
 };
 int counter_no_of_values = end_of_counter_enum;
 
@@ -167,34 +168,12 @@ void stopTestRig()
 
 void resetTestRig()
 {
-  static byte resetStage = 1;
-  state_controller.setMachineRunningState(0);
-
-  if (resetStage == 1)
-  {
+    state_controller.set_machine_stop();
     resetCylinderStates();
-    errorBlinkState = 0;
     clearTextField("t4");
     hideInfoField();
-    state_controller.setCycleStepTo(0);
-    resetStage++;
-  }
-  if (resetStage == 2)
-  {
-    motor_bremse.stroke(1500, 0);
-    if (motor_bremse.stroke_completed())
-    {
-      resetStage++;
-    }
-  }
-  if (resetStage == 3)
-  {
-    state_controller.setCycleStepTo(0);
-    state_controller.setResetMode(0);
-    bool runAfterReset = state_controller.runAfterReset();
-    state_controller.setMachineRunningState(runAfterReset);
-    resetStage = 1;
-  }
+    state_controller.set_current_step_to(0);
+    
 }
 
 // NEXTION GENERAL DISPLAY FUNCTIONS
@@ -322,20 +301,17 @@ void button_stepback_push(void *ptr)
 {
   if (state_controller.currentCycleStep() > 0)
   {
-    state_controller.setCycleStepTo(state_controller.currentCycleStep() - 1);
+    state_controller.set_current_step_to(state_controller.get_current_step() - 1);
   }
 }
 void button_next_step_push(void *ptr)
 {
-  state_controller.switchToNextStep();
+  state_controller.switch_to_next_step();
 }
 void button_reset_cycle_push(void *ptr)
 {
-  timeoutDetected = 0;
-  state_controller.setResetMode(1);
-  state_controller.setStepMode();
-  state_controller.setRunAfterReset(0);
-  clearTextField("t4");
+   state_controller.set_reset_mode(1);
+    clearTextField("t4");
   hideInfoField();
 }
 //*************************************************
@@ -389,39 +365,37 @@ void button_schlitten_pop(void *ptr)
 void button_slider_1_left_push(void *ptr)
 {
   byte increment = 10;
-  if (eeprom_counter.getValue(coolingTime) <= 20)
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 20)
   {
     increment = 5;
   }
-  if (eeprom_counter.getValue(coolingTime) <= 10)
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 10)
   {
     increment = 1;
   }
-  eeprom_counter.set(coolingTime, eeprom_counter.getValue(coolingTime) - increment);
-  if (eeprom_counter.getValue(coolingTime) < 4)
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) - increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) < 4)
   {
-    eeprom_counter.set(coolingTime, 4);
+    eeprom_counter.set(bandvorschub_oben, 4);
   }
-  resetTimeout.setTime((eeprom_counter.getValue(coolingTime) + cycleTimeInSeconds) * 1000);
-}
+ }
 void button_slider_1_right_push(void *ptr)
 {
   byte increment = 10;
 
-  if (eeprom_counter.getValue(coolingTime) < 20)
+  if (eeprom_counter.getValue(bandvorschub_oben) < 20)
   {
     increment = 5;
   }
-  if (eeprom_counter.getValue(coolingTime) < 10)
+  if (eeprom_counter.getValue(bandvorschub_oben) < 10)
   {
     increment = 1;
   }
-  eeprom_counter.set(coolingTime, eeprom_counter.getValue(coolingTime) + increment);
-  if (eeprom_counter.getValue(coolingTime) > 120)
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) + increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) > 120)
   {
-    eeprom_counter.set(coolingTime, 120);
-  }
-  resetTimeout.setTime((eeprom_counter.getValue(coolingTime) + cycleTimeInSeconds) * 1000);
+    eeprom_counter.set(bandvorschub_oben, 120);
+  } 
 }
 //*************************************************
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
@@ -432,11 +406,11 @@ void button_reset_shorttime_counter_push(void *ptr)
 
   // RESET LONGTIME COUNTER IF RESET BUTTON IS PRESSED LONG ENOUGH:
   counter_reset_stopwatch = millis();
-  resetStopwatchActive = true;
+  reset_stopwatch_active = true;
 }
 void button_reset_shorttime_counter_pop(void *ptr)
 {
-  resetStopwatchActive = false;
+  reset_stopwatch_active = false;
 }
 
 //*************************************************
@@ -452,7 +426,7 @@ void page1_push(void *ptr)
   hideInfoField();
 
   // REFRESH BUTTON STATES:
-  nex_prev_cycle_step = !state_controller.get_current_step());
+  nex_prev_cycle_step = !state_controller.get_current_step();
   nex_prev_step_mode = true;
   nex_state_entlueftung = 0;
   nex_state_motorbremse = 0;
@@ -544,7 +518,7 @@ void nextionLoop()
     if (nex_prev_cycle_step != state_controller.get_current_step())
     {
       nex_prev_cycle_step = state_controller.get_current_step();
-      print_on_text_field(
+      print_on_text_field("???","t0");
           //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
     }
     // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
@@ -650,12 +624,7 @@ void nextionLoop()
   if (current_page == 2)
   {
 
-    if (nex_prev_bandvorschub_oben != eeprom_counter.getValue(bandvorschub_oben_counter))
-    {
-      print_on_text_field(String(eeprom_counter.getValue(coolingTime)) + " s", "t4");
-      nex_prev_bandvorschub_oben = eeprom_counter.getValue(coolingTime);
-    }
-    //*******************
+     //*******************
     // PAGE 2 - RIGHT SIDE
     //*******************
     if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter))
