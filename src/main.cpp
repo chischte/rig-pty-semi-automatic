@@ -280,6 +280,7 @@ void setup()
   Serial.begin(115200);
   state_controller.set_auto_mode();
   state_controller.set_machine_running();
+  pinMode(TEST_SWITCH_PIN,INPUT_PULLUP); // DEACTIVATE FOR CONTROLLINO!
   Serial.println("EXIT SETUP");
   //------------------------------------------------
    nextionSetup();
