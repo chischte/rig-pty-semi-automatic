@@ -58,7 +58,6 @@ Insomnia errorBlinkTimer;
 Insomnia resetTimeout; // reset rig after 40 seconds inactivity
 Insomnia reset_delay;
 
-
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
 
@@ -89,7 +88,6 @@ NexButton button_slider_1_right = NexButton(2, 5, "b2");
 // PAGE 2 - RIGHT SIDE:
 NexButton button_reset_shorttime_counter = NexButton(2, 11, "b4");
 
-
 // NEXTION DISPLAY - TOUCH EVENT LIST
 //*****************************************************************************
 NexTouch *nex_listen_list[] = { //
@@ -107,7 +105,6 @@ NexTouch *nex_listen_list[] = { //
     &button_reset_shorttime_counter,
       // END OF LISTEN LIST:
     NULL};
-
 
 // GLOBAL VARIABLES:
 //*****************************************************************************
@@ -134,6 +131,7 @@ bool counterReseted = false;
 int currentPage = 0;
 unsigned long counterResetStopwatch;
 char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
+
 // NEXTION SWITCHSTATES
 bool nex_state_entlueftung;
 bool nex_state_motorbremse;
@@ -153,7 +151,6 @@ bool error_blink_state = false;
 byte timeout_detected = 0;
 int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
-
 // NON NEXTION FUNCTIONS
 //*****************************************************************************
 void resetCylinderStates()
@@ -172,8 +169,6 @@ void stopTestRig()
   state_controller.set_step_mode();
   state_controller.set_machine_stop();
 }
-
-
 
 void resetTestRig()
 {
@@ -229,6 +224,7 @@ void clearTextField(String textField)
   Serial2.print("\"");
   send_to_nextion();
 }
+
 void printOnValueField(int value, String valueField)
 {
   Serial2.print(valueField);
@@ -236,6 +232,7 @@ void printOnValueField(int value, String valueField)
   Serial2.print(value);
   send_to_nextion();
 }
+
 void printCurrentStep()
 {
   Serial.print(state_controller.get_current_step());
@@ -272,7 +269,6 @@ void nex_switch_play_pausePopCallback(void *ptr) {
   }
   reset_stopwatch_is_active = false;
 }
-
 
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE
 //*************************************************
@@ -311,7 +307,7 @@ void button_reset_cycle_push(void *ptr)
     clearTextField("t4");
   hideInfoField();
 }
-//*************************************************
+
 // TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE
 //*************************************************
 void button_klemmen_ds_pop(void *ptr)
@@ -356,7 +352,7 @@ void button_schlitten_pop(void *ptr)
 {
   zylinder_schlitten.set(0);
 }
-//*************************************************
+
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
 //*************************************************
 void button_slider_1_left_push(void *ptr)
@@ -394,7 +390,7 @@ void button_slider_1_right_push(void *ptr)
     eeprom_counter.set(bandvorschub_oben, 120);
   } 
 }
-//*************************************************
+
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
 //*************************************************
 void button_reset_shorttime_counter_push(void *ptr)
@@ -410,7 +406,6 @@ void button_reset_shorttime_counter_pop(void *ptr)
   reset_stopwatch_is_active = false;
 }
 
-//*************************************************
 // TOUCH EVENT FUNCTIONS PAGE CHANGES
 //*************************************************
 void nexPage0PushCallback(void *ptr)
@@ -441,9 +436,6 @@ void nex_page_2_push(void *ptr)
   nex_prev_shorttime_counter = 0;
   nex_prev_longtime_counter = 0;
 }
-
-
-
 
 //*****************************************************************************
 void nextionSetup()
@@ -672,7 +664,7 @@ public:
   void do_stuff()
   {
     motor_band_oben.stroke(1500, 1000);
-    if (motor_bremse.stroke_completed())
+    if (motor_band_oben.stroke_completed())
     {
       std::cout << "Class I bytes ya tooth\n";
       set_completed();
@@ -702,7 +694,6 @@ private:
 //******************************************************************************
 int Cycle_step::object_count = 0; // enable object counting
 std::vector<Cycle_step *> cycle_steps;
-
 //*****************************************************************************
 void setup()
 {
@@ -768,11 +759,10 @@ void loop()
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
   if (state_controller.machine_is_running())
   {
-    std::cout << "THIS IS WHAT IT DOES: ";
+    //std::cout << "THIS IS WHAT IT DOES: ";
     cycle_steps[state_controller.get_current_step()]->do_stuff();
-    std::cout << "---------------\n\n";
+    //std::cout << "---------------\n\n";
   }
-
- delay(1000);
+ 
 }
 //*****************************************************************************
