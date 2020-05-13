@@ -1,14 +1,14 @@
 /*
- * *****************************************************************************
+ * ****************************************************************************
  * RIG TEMPLATR
- * *****************************************************************************
+ * ****************************************************************************
  * Program for an endurance test of a mechanical switch
  * The switch will be pushed 100'000 times or more.
  * The number of pushes will be counted and displayed.
- * *****************************************************************************
+ * ****************************************************************************
  * Michael Wettstein
  * May 2020, Zürich
- * *****************************************************************************
+ * ****************************************************************************
  */
 
 
@@ -24,9 +24,9 @@
 #include <CycleStep.h>       // TODO ADD TO LIBRARY
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
-//******************************************************************************
+//*****************************************************************************
 // DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
-//******************************************************************************
+//*****************************************************************************
 enum counter
 {
   longtime_counter,   //
@@ -37,17 +37,17 @@ enum counter
 
 int counter_no_of_values = end_of_counter_enum;
 
-//******************************************************************************
+//*****************************************************************************
 // DECLARATION OF VARIABLES
-//******************************************************************************
+//*****************************************************************************
 bool strap_detected;
 bool error_blink_state = false;
 byte timeout_detected = 0;
 int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
-//******************************************************************************
+//*****************************************************************************
 // GENERATE INSTANCES OF CLASSES:
-//******************************************************************************
+//*****************************************************************************
 Cylinder cylinder_schlitten(CONTROLLINO_D5);
 Cylinder cylinder_bandklemme(CONTROLLINO_D7);
 
@@ -57,10 +57,11 @@ Insomnia nex_reset_button_timeout;
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
+//*****************************************************************************
 
-//******************************************************************************
+//*****************************************************************************
 // NEXTION DISPLAY - DECLARATION OF VARIABLES
-//******************************************************************************
+//*****************************************************************************
 bool resetStopwatchActive = false;
 bool nextionPlayPauseButtonState;
 bool counterReseted = false;
@@ -207,13 +208,13 @@ void nextionLoop()
 // WRITE CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
 // TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
-// Step_feed_upper_strap
-// Step_feed_lower_strap
-// Step_apply_tension
-// -->include timeout function
-// -->manually activate brake
-// Step_release_tension
-// Step_cut_strap
+// feed_upper_strap
+// feed_lower_strap
+// brake (tool can work)
+// release air 
+// cut (open gate, then cut))
+// release brake
+// move sledge back
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 class Step_wippenhebel : public Cycle_step
@@ -287,7 +288,6 @@ void loop()
 {
 
   // TODO:
-  // Fix bug picture does not show in README.md
   // Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
   // Implement Nextion, make button state monitoring more elegant
   // Implement sub step possibility
@@ -329,10 +329,6 @@ void loop()
     std::cout << "---------------\n\n";
   }
 
-
-
-
-
   // GET SIGNAL FROM TEST SWITCH AND COUNT IT:
   bool debouncedButtonState = test_switch.requestButtonState();
   if (previousButtonState != debouncedButtonState) {
@@ -345,13 +341,5 @@ void loop()
   }
 
 
-
-
-
-
-
-
-
-
-  delay(1000);
+ delay(1000);
 }
