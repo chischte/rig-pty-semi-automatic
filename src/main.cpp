@@ -34,10 +34,24 @@ int counter_no_of_values = end_of_counter_enum;
 
 // GENERATE INSTANCES OF CLASSES:
 //*****************************************************************************
-Cylinder cylinder_schlitten(CONTROLLINO_D5);
-Cylinder cylinder_bandklemme(CONTROLLINO_D7);
+Cylinder zylinder_schlitten(CONTROLLINO_D3);
+Cylinder zylinder_entlueften(CONTROLLINO_D4);
+Cylinder motor_band_oben(CONTROLLINO_D5);
+Cylinder motor_band_unten(CONTROLLINO_D6);
+Cylinder motor_bremse(CONTROLLINO_D7);
+Cylinder zylinder_messer(CONTROLLINO_D8);
+
+Debounce EndSwitchRight(CONTROLLINO_A0);
+Debounce StrapDetectionSensor(A1);
+Debounce EndSwitchLeft(CONTROLLINO_A2);
 
 unsigned long blink_delay = 600;
+Insomnia nex_reset_button_timeout;
+Insomnia errorBlinkTimer;
+unsigned long blinkDelay = 600;
+Insomnia resetTimeout; // reset rig after 40 seconds inactivity
+Insomnia resetDelay;
+Insomnia coolingDelay;
 Insomnia nex_reset_button_timeout;
 
 State_controller state_controller;
@@ -46,14 +60,49 @@ EEPROM_Counter eeprom_counter;
 // NEXTION DISPLAY - OBJECTS
 //*****************************************************************************
 // PAGE 0:
-NexDSButton nex_switch_play_pause = NexDSButton(0, 2, "bt0");
+NexPage nex_page_0 = NexPage(0, 0, "page0");
+//PAGE 1 - LEFT SIDE:
+NexPage nex_page_1 = NexPage(1, 0, "page1");
+NexButton button_previous_step = NexButton(1, 6, "b1");
+NexButton button_next_step = NexButton(1, 7, "b2");
+NexButton button_reset_cycle = NexButton(1, 5, "b0");
+NexDSButton button_play_pause_ds = NexDSButton(1, 3, "bt0");
+NexDSButton button_modeswitch_ds = NexDSButton(1, 4, "bt1");
+// PAGE 1 - RIGHT SIDE
+NexDSButton button_entlueften_ds = NexDSButton(1, 13, "bt3");
+NexDSButton button_klemmen_ds = NexDSButton(1, 10, "bt5");
+NexButton button_schlitten = NexButton(1, 1, "b6");
+NexButton button_motor_oben = NexButton(1, 9, "b4");
+NexButton button_schneiden = NexButton(1, 14, "b5");
+NexButton button_motor_unten = NexButton(1, 8, "b3");
+
+// PAGE 2 - LEFT SIDE:
+NexPage nex_page_2 = NexPage(2, 0, "page2");
+NexButton button_slider_1_left = NexButton(2, 4, "b1");
+NexButton button_slider_1_right = NexButton(2, 5, "b2");
+
+// PAGE 2 - RIGHT SIDE:
+NexButton button_reset_shorttime_counter = NexButton(2, 11, "b4");
+
 
 // NEXTION DISPLAY - TOUCH EVENT LIST
 //*****************************************************************************
-NexTouch *nex_listen_list[] = { &nex_switch_play_pause,
+NexTouch *nex_listen_list[] = { //
+    // PAGE 0:
+    &nex_page_0,
+    // PAGE 1 LEFT:
+    &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle, &button_play_puse_ds,
+    &button_modeswitch_ds,
+    // PAGE 1 RIGHT:
+    &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
+    &button_motor_oben, &button_motor_unten,
+    // PAGE 2 LEFT:
+    &nex_page_2, &button_slider_1_left, &button_slider_1_right,
+    // PAGE 2 RIGHT:
+    &button_reset_shorttime_counter,
+      // END OF LISTEN LIST:
+    NULL};
 
-NULL //String terminated
-        };
 
 // GLOBAL VARIABLES:
 //*****************************************************************************
@@ -97,7 +146,59 @@ bool error_blink_state = false;
 byte timeout_detected = 0;
 int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
-// NEXTION DISPLAY FUNCTIONS
+
+// NON NEXTION FUNCTIONS
+//*****************************************************************************
+void resetCylinderStates()
+{
+  zylinder_schlitten.set(0);
+  motor_band_oben.set(0);
+  motor_band_unten.set(0);
+  motor_bremse.set(0);
+  zylinder_messer.set(0);
+  zylinder_entlueften.set(0);
+}
+
+void stopTestRig()
+{
+  resetCylinderStates();
+  state_controller.setStepMode();
+  state_controller.setMachineRunningState(false);
+}
+
+void resetTestRig()
+{
+  static byte resetStage = 1;
+  state_controller.setMachineRunningState(0);
+
+  if (resetStage == 1)
+  {
+    resetCylinderStates();
+    errorBlinkState = 0;
+    clearTextField("t4");
+    hideInfoField();
+    state_controller.setCycleStepTo(0);
+    resetStage++;
+  }
+  if (resetStage == 2)
+  {
+    motor_bremse.stroke(1500, 0);
+    if (motor_bremse.stroke_completed())
+    {
+      resetStage++;
+    }
+  }
+  if (resetStage == 3)
+  {
+    state_controller.setCycleStepTo(0);
+    state_controller.setResetMode(0);
+    bool runAfterReset = state_controller.runAfterReset();
+    state_controller.setMachineRunningState(runAfterReset);
+    resetStage = 1;
+  }
+}
+
+// NEXTION GENERAL DISPLAY FUNCTIONS
 //*****************************************************************************
 void send_to_nextion() {
   Serial2.write(0xff);
@@ -110,6 +211,57 @@ void updateDisplayCounter() {
   Serial2.print("t0.txt=");
   Serial2.print("\"");
   Serial2.print(newValue);
+  Serial2.print("\"");
+  send_to_nextion();
+}
+
+void showInfoField()
+{
+  if (current_page == 1)
+  {
+    Serial2.print("vis t4,1");
+    send_to_nextion();
+  }
+}
+
+void hideInfoField()
+{
+  if (current_page == 1)
+  {
+    Serial2.print("vis t4,0");
+    send_to_nextion();
+  }
+}
+
+void clearTextField(String textField)
+{
+  Serial2.print(textField);
+  Serial2.print(".txt=");
+  Serial2.print("\"");
+  Serial2.print(""); // erase text
+  Serial2.print("\"");
+  send_to_nextion();
+}
+void printOnValueField(int value, String valueField)
+{
+  Serial2.print(valueField);
+  Serial2.print(".val=");
+  Serial2.print(value);
+  send_to_nextion();
+}
+void printCurrentStep()
+{
+  Serial.print(state_controller.currentCycleStep());
+  Serial.print(" ");
+  Serial.println(cycleName[state_controller.currentCycleStep()]);
+}
+
+void print_on_text_field(String text, String textField)
+{
+  Serial2.print(textField);
+  Serial2.print(".txt=");
+  Serial2.print("\"");
+  Serial2.print(text);
   Serial2.print("\"");
   send_to_nextion();
 }
@@ -134,53 +286,454 @@ void nex_switch_play_pausePopCallback(void *ptr) {
   reset_stopwatch_is_active = false;
 }
 
+
+// TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE
+//*************************************************
+void button_play_pause_ds_push(void *ptr)
+{
+  state_controller.toggleMachineRunningState();
+  nex_state_machine_running = !nex_state_machine_running;
+
+  // CREATE LOG ENTRY IF AUTO-RUN STARTS OR STOPPS
+  if (state_controller.autoMode())
+  {
+    if (state_controller.machineRunning())
+    {
+      writeErrorLog(manualOn);
+    }
+    else
+    {
+      writeErrorLog(manualOff);
+    }
+  }
+}
+void button_modeswitch_ds_push(void *ptr)
+{
+  if (state_controller.autoMode())
+  {
+    state_controller.setStepMode();
+  }
+  else
+  {
+    state_controller.setAutoMode();
+  }
+  nex_prev_step_mode = state_controller.stepMode();
+}
+void button_stepback_push(void *ptr)
+{
+  if (state_controller.currentCycleStep() > 0)
+  {
+    state_controller.setCycleStepTo(state_controller.currentCycleStep() - 1);
+  }
+}
+void button_next_step_push(void *ptr)
+{
+  state_controller.switchToNextStep();
+}
+void button_reset_cycle_push(void *ptr)
+{
+  timeoutDetected = 0;
+  state_controller.setResetMode(1);
+  state_controller.setStepMode();
+  state_controller.setRunAfterReset(0);
+  clearTextField("t4");
+  hideInfoField();
+}
+//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE
+//*************************************************
+void button_klemmen_ds_pop(void *ptr)
+{
+  motor_bremse.toggle();
+  nex_state_motorbremse = !nex_state_motorbremse;
+}
+void button_motor_oben_push(void *ptr)
+{
+  motor_band_oben.set(1);
+}
+void button_motor_oben_pop(void *ptr)
+{
+  motor_band_oben.set(0);
+}
+void button_motor_unten_push(void *ptr)
+{
+  motor_band_unten.set(1);
+}
+void button_motor_unten_pop(void *ptr)
+{
+  motor_band_unten.set(0);
+}
+void button_entlueften_ds_push(void *ptr)
+{
+  zylinder_entlueften.toggle();
+  nex_state_entlueftung = !nex_state_entlueftung;
+}
+void button_schneiden_push(void *ptr)
+{
+  zylinder_messer.set(1);
+}
+void button_schneiden_pop(void *ptr)
+{
+  zylinder_messer.set(0);
+}
+void button_schlitten_push(void *ptr)
+{
+  zylinder_schlitten.set(1);
+}
+void button_schlitten_pop(void *ptr)
+{
+  zylinder_schlitten.set(0);
+}
+//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
+//*************************************************
+void button_slider_1_left_push(void *ptr)
+{
+  byte increment = 10;
+  if (eeprom_counter.getValue(coolingTime) <= 20)
+  {
+    increment = 5;
+  }
+  if (eeprom_counter.getValue(coolingTime) <= 10)
+  {
+    increment = 1;
+  }
+  eeprom_counter.set(coolingTime, eeprom_counter.getValue(coolingTime) - increment);
+  if (eeprom_counter.getValue(coolingTime) < 4)
+  {
+    eeprom_counter.set(coolingTime, 4);
+  }
+  resetTimeout.setTime((eeprom_counter.getValue(coolingTime) + cycleTimeInSeconds) * 1000);
+}
+void button_slider_1_right_push(void *ptr)
+{
+  byte increment = 10;
+
+  if (eeprom_counter.getValue(coolingTime) < 20)
+  {
+    increment = 5;
+  }
+  if (eeprom_counter.getValue(coolingTime) < 10)
+  {
+    increment = 1;
+  }
+  eeprom_counter.set(coolingTime, eeprom_counter.getValue(coolingTime) + increment);
+  if (eeprom_counter.getValue(coolingTime) > 120)
+  {
+    eeprom_counter.set(coolingTime, 120);
+  }
+  resetTimeout.setTime((eeprom_counter.getValue(coolingTime) + cycleTimeInSeconds) * 1000);
+}
+//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
+//*************************************************
+void button_reset_shorttime_counter_push(void *ptr)
+{
+  eeprom_counter.set(shorttimeCounter, 0);
+
+  // RESET LONGTIME COUNTER IF RESET BUTTON IS PRESSED LONG ENOUGH:
+  counter_reset_stopwatch = millis();
+  resetStopwatchActive = true;
+}
+void button_reset_shorttime_counter_pop(void *ptr)
+{
+  resetStopwatchActive = false;
+}
+//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 3 - ERROR LOG
+//*************************************************
+void nexButNextLogPushCallback(void *ptr)
+{
+  static byte noOfLogsPerPage = 10;
+  byte maxLogPage = loggerNoOfLogs / noOfLogsPerPage;
+  if (errorLogPage < (maxLogPage - 1))
+  {
+    errorLogPage++;
+    printLogPage();
+  }
+}
+void nexButResetLogPushCallback(void *ptr)
+{
+  nex_reset_button_timeout.setTime(1500);
+  nex_reset_button_timeout.setActive(1);
+}
+void nexButResetLogPopCallback(void *ptr)
+{
+  nex_reset_button_timeout.setActive(0);
+}
+void nexButPrevLogPushCallback(void *ptr)
+{
+  if (errorLogPage > 0)
+    errorLogPage--;
+  printLogPage();
+}
+//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE CHANGES
+//*************************************************
+void nexPage0PushCallback(void *ptr)
+{
+  current_page = 0;
+}
+void page1_push(void *ptr)
+{
+  current_page = 1;
+  hideInfoField();
+
+  // REFRESH BUTTON STATES:
+  nex_prev_cycle_step = !state_controller.currentCycleStep();
+  nex_prev_step_mode = true;
+  nex_state_entlueftung = 0;
+  nex_state_motorbremse = 0;
+  nex_motor_oben = 0;
+  nex_state_schlitten = 0;
+  nex_state_messer = 0;
+  nex_state_motor_unten = 0;
+  nex_state_machine_running = 0;
+}
+void nex_page_2_push(void *ptr)
+{
+  current_page = 2;
+  // REFRESH BUTTON STATES:
+  nex_prev_bandvorschub_oben = 0;
+  nex_prev_shorttime_counter = 0;
+  nex_prev_longtime_counter = 0;
+}
+
+
+
+
 //*****************************************************************************
 void nextionSetup()
 //*****************************************************************************
 {
-  Serial.println("START OF NEXTION SETUP");
-  Serial2.begin(9600);  // Start serial comunication at baud=9600
+  Serial2.begin(9600);
+
+  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
+  send_to_nextion(); // needed for unknown reasons
+  Serial2.print("rest");
+  send_to_nextion();
 
   //*****************************************************************************
-  // NEXTION DISPLAY - REGISTER THE EVENT CALLBACK FUNCTIONS
+  // REGISTER THE EVENT CALLBACK FUNCTIONS
   //*****************************************************************************
-  //*****PUSH::
-  // n.a.
+  // PAGE 0 PUSH ONLY:
+  nex_page_0.attachPush(nexPage0PushCallback);
+  // PAGE 1 PUSH ONLY:
+  nex_page_1.attachPush(page1_push);
+  button_previous_step.attachPush(button_stepback_push);
+  button_next_step.attachPush(button_next_step_push);
+  button_reset_cycle.attachPush(button_reset_cycle_push);
+  button_previous_step.attachPush(button_stepback_push);
+  button_next_step.attachPush(button_next_step_push);
+  button_modeswitch_ds.attachPush(button_modeswitch_ds_push);
+  button_play_puse_ds.attachPush(button_play_pause_ds_push);
+  button_klemmen_ds.attachPush(button_klemmen_ds_pop);
+  button_entlueften_ds.attachPush(button_entlueften_ds_push);
+  // PAGE 1 PUSH AND POP:
+  button_motor_oben.attachPush(button_motor_oben_push);
+  button_motor_oben.attachPop(button_motor_oben_pop);
+  button_motor_unten.attachPush(button_motor_unten_push);
+  button_motor_unten.attachPop(button_motor_unten_pop);
+  button_schneiden.attachPush(button_schneiden_push);
+  button_schneiden.attachPop(button_schneiden_pop);
+  button_schlitten.attachPush(button_schlitten_push);
+  button_schlitten.attachPop(button_schlitten_pop);
+  // PAGE 2 PUSH ONLY:
+  nex_page_2.attachPush(nex_page_2_push);
+  button_slider_1_left.attachPush(button_slider_1_left_push);
+  button_slider_1_right.attachPush(button_slider_1_right_push);
+  // PAGE 2 PUSH AND POP:
+  button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
+  button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
+  
+  //*****************************************************************************
+  // END OF REGISTER
+  //*****************************************************************************
 
-  //*****PUSH+POP:
-  nex_switch_play_pause.attachPush(nex_switch_play_pausePushCallback);
-  nex_switch_play_pause.attachPop(nex_switch_play_pausePopCallback);
-  //*****************************************************************************
   delay(2000);
+  sendCommand("page 1"); // switch display to page x
   send_to_nextion();
 
-  // TOGGLE APPEARANCE OF PLAY/PAUSE BUTTON:
-  Serial2.print("click bt0,1");        // click button
-  send_to_nextion();
-
-  Serial.println("END OF NEXTION SETUP");
-
-}  // END OF NEXTION SETUP
+} // END OF NEXTION SETUP
 //*****************************************************************************
 void nextionLoop()
 //*****************************************************************************
 {
-  nexLoop(nex_listen_list); //check for any touch event
+  nexLoop(nex_listen_list); // check for any touch event
 
-  if (currentPage == 0) {
-    //********************************
-    // PAGE 0:
-    //********************************
-    // RESET COUNTER:
-    if (reset_stopwatch_is_active == true) {
-      if (millis() - counterResetStopwatch > 3000) {
-        eeprom_counter.set(longtime_counter, 0);
-        updateDisplayCounter();
-        counterReseted = true;
+  //*******************
+  // PAGE 1 - LEFT SIDE:
+  //*******************
+  if (current_page == 1)
+  {
+
+    // UPDATE CYCLE NAME:
+    if (nex_prev_cycle_step != state_controller.currentCycleStep())
+    {
+      nex_prev_cycle_step = state_controller.currentCycleStep();
+      print_on_text_field(
+          (state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
+    }
+    // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
+    if (nex_state_machine_running != state_controller.machineRunning())
+    {
+      Serial2.print("click bt0,1");
+      send_to_nextion();
+      nex_state_machine_running = state_controller.machineRunning();
+    }
+
+    // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
+    if (nex_prev_step_mode != state_controller.stepMode())
+    {
+      Serial2.print("click bt1,1");
+      send_to_nextion();
+      nex_prev_step_mode = state_controller.stepMode();
+    }
+
+    // DISPLAY COOLING TIME:
+    if (state_controller.machineRunning())
+    {
+      if (state_controller.currentCycleStep() == Schweissen)
+      {
+
+        int remainingPause = coolingDelay.remainingDelayTime() / 1000;
+        print_on_text_field(String(remainingPause) + " s", "t4");
       }
     }
-  }
-}    //END OF NEXTION LOOP
+
+    //*******************
+    // PAGE 1 - RIGHT SIDE:
+    //*******************
+
+    // UPDATE SWITCHBUTTON (dual state):
+    if (zylinder_entlueften.request_state() != nex_state_entlueftung)
+    {
+      Serial2.print("click bt3,1");
+      send_to_nextion();
+      nex_state_entlueftung = !nex_state_entlueftung;
+    }
+    // UPDATE SWITCHBUTTON (dual state):
+    if (motor_bremse.request_state() != nex_state_motorbremse)
+    {
+      Serial2.print("click bt5,1");
+      send_to_nextion();
+      nex_state_motorbremse = !nex_state_motorbremse;
+    }
+
+    // UPDATE BUTTON (momentary):
+    if (zylinder_schlitten.request_state() != nex_state_schlitten)
+    {
+      if (zylinder_schlitten.request_state())
+      {
+        Serial2.print("click b6,1");
+      }
+      else
+      {
+        Serial2.print("click b6,0");
+      }
+      send_to_nextion();
+      nex_state_schlitten = zylinder_schlitten.request_state();
+    }
+
+    // UPDATE BUTTON (momentary):
+    if (motor_band_oben.request_state() != nex_motor_oben)
+    {
+      if (motor_band_oben.request_state())
+      {
+        Serial2.print("click b4,1");
+      }
+      else
+      {
+        Serial2.print("click b4,0");
+      }
+      send_to_nextion();
+      nex_motor_oben = motor_band_oben.request_state();
+    }
+
+    // UPDATE BUTTON (momentary):
+    if (zylinder_messer.request_state() != nex_state_messer)
+    {
+      if (zylinder_messer.request_state())
+      {
+        Serial2.print("click b5,1");
+      }
+      else
+      {
+        Serial2.print("click b5,0");
+      }
+      send_to_nextion();
+      nex_state_messer = zylinder_messer.request_state();
+    }
+
+    // UPDATE BUTTON (momentary):
+    if (motor_band_unten.request_state() != nex_state_motor_unten)
+    {
+      if (motor_band_unten.request_state())
+      {
+        Serial2.print("click b3,1");
+      }
+      else
+      {
+        Serial2.print("click b3,0");
+      }
+      send_to_nextion();
+      nex_state_motor_unten = motor_band_unten.request_state();
+    }
+  } // END PAGE 1
+
+  //*******************
+  // PAGE 2 - LEFT SIDE
+  //*******************
+  if (current_page == 2)
+  {
+
+    if (nex_prev_bandvorschub_oben != eeprom_counter.getValue(coolingTime))
+    {
+      print_on_text_field(String(eeprom_counter.getValue(coolingTime)) + " s", "t4");
+      nex_prev_bandvorschub_oben = eeprom_counter.getValue(coolingTime);
+    }
+    //*******************
+    // PAGE 2 - RIGHT SIDE
+    //*******************
+    if (nex_prev_longtime_counter != eeprom_counter.getValue(longtimeCounter))
+    {
+
+      print_on_text_field(String(eeprom_counter.getValue(longtimeCounter)), "t10");
+      //PrintOnTextField((eepromCounter.getValue(longtimeCounter) + ("")), "t10");
+      nex_prev_longtime_counter = eeprom_counter.getValue(longtimeCounter);
+    }
+    if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttimeCounter))
+    {
+      print_on_text_field(String(eeprom_counter.getValue(shorttimeCounter)), "t12");
+      nex_prev_shorttime_counter = eeprom_counter.getValue(shorttimeCounter);
+    }
+    if (resetStopwatchActive)
+    {
+      if (millis() - counter_reset_stopwatch > 5000)
+      {
+        eeprom_counter.set(longtimeCounter, 0);
+      }
+    }
+  } // END PAGE 2
+
+  //*******************
+  // PAGE 3 - ERROR LOG:
+  //*******************
+  if (current_page == 3)
+  {
+    // RESET ERROR LOGS WITH LONG BUTTON PUSH:
+    if (nex_reset_button_timeout.active())
+    { // returns true if timeout is active
+      if (nex_reset_button_timeout.timedOut())
+      { // returns true if timeout time has been reached
+        errorLogger.setAllZero();
+        errorLogPage = 0;
+        printLogPage();
+        nex_reset_button_timeout.setActive(0);
+      }
+    }
+  } // END PAGE 3
+} // END OF NEXTION LOOP
 //*****************************************************************************
 
 // CLASSES FOR THE MAIN CYCLE STEPS
@@ -206,8 +759,8 @@ public:
   }
   void do_stuff()
   {
-    cylinder_schlitten.stroke(1500, 1000);
-    if (cylinder_bandklemme.stroke_completed())
+    motor_band_oben.stroke(1500, 1000);
+    if (motor_bremse.stroke_completed())
     {
       std::cout << "Class I bytes ya tooth\n";
       set_completed();
