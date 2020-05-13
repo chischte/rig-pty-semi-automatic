@@ -21,6 +21,12 @@
 #include <CycleStep.h>       // TODO ADD TO LIBRARY
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
+
+// DECLARE FUNCTIONS:
+//*****************************************************************************
+void clearTextField(String textField);
+void hideInfoField();
+
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
 enum counter
@@ -112,6 +118,7 @@ Debounce test_switch(TEST_SWITCH_PIN);
 const byte MOTOR_RELAY_PIN = 50;
 
 // NEXTION VARIABLES
+
 int current_page=0;
 bool reset_stopwatch_is_active;
 unsigned int stoppedButtonPushtime;
@@ -165,6 +172,8 @@ void stopTestRig()
   state_controller.set_step_mode();
   state_controller.set_machine_stop();
 }
+
+
 
 void resetTestRig()
 {
@@ -229,9 +238,9 @@ void printOnValueField(int value, String valueField)
 }
 void printCurrentStep()
 {
-  Serial.print(state_controller.currentCycleStep());
+  Serial.print(state_controller.get_current_step());
   Serial.print(" ");
-  Serial.println(cycleName[state_controller.currentCycleStep()]);
+ // Serial.println(cycleName[state_controller.currentCycleStep()]);
 }
 
 void print_on_text_field(String text, String textField)
@@ -269,37 +278,25 @@ void nex_switch_play_pausePopCallback(void *ptr) {
 //*************************************************
 void button_play_pause_ds_push(void *ptr)
 {
-  state_controller.toggleMachineRunningState();
+  state_controller. toggle_machine_running_state();
   nex_state_machine_running = !nex_state_machine_running;
-
-  // CREATE LOG ENTRY IF AUTO-RUN STARTS OR STOPPS
-  if (state_controller.autoMode())
-  {
-    if (state_controller.machineRunning())
-    {
-      writeErrorLog(manualOn);
-    }
-    else
-    {
-      writeErrorLog(manualOff);
-    }
-  }
+  
 }
 void button_modeswitch_ds_push(void *ptr)
 {
-  if (state_controller.autoMode())
+  if (state_controller.is_in_auto_mode())
   {
-    state_controller.setStepMode();
+    state_controller.set_step_mode();
   }
   else
   {
-    state_controller.setAutoMode();
+    state_controller.set_auto_mode();
   }
-  nex_prev_step_mode = state_controller.set_step_mode();
+  nex_prev_step_mode = state_controller.is_in_step_mode();
 }
 void button_stepback_push(void *ptr)
 {
-  if (state_controller.currentCycleStep() > 0)
+  if (state_controller.get_current_step() > 0)
   {
     state_controller.set_current_step_to(state_controller.get_current_step() - 1);
   }
@@ -406,11 +403,11 @@ void button_reset_shorttime_counter_push(void *ptr)
 
   // RESET LONGTIME COUNTER IF RESET BUTTON IS PRESSED LONG ENOUGH:
   counter_reset_stopwatch = millis();
-  reset_stopwatch_active = true;
+  reset_stopwatch_is_active = true;
 }
 void button_reset_shorttime_counter_pop(void *ptr)
 {
-  reset_stopwatch_active = false;
+  reset_stopwatch_is_active = false;
 }
 
 //*************************************************
@@ -639,7 +636,7 @@ void nextionLoop()
       print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)), "t12");
       nex_prev_shorttime_counter = eeprom_counter.getValue(shorttime_counter);
     }
-    if (reset_stopwatch_active)
+    if (reset_stopwatch_is_active)
     {
       if (millis() - counter_reset_stopwatch > 5000)
       {
