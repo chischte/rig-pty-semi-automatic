@@ -9,9 +9,8 @@
  * ****************************************************************************
  */
 
-
-#include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
 //#include <Controllino.h>   // PIO Controllino Library // Comment out when using an Arduino
+#include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
 #include <Nextion.h>         // PIO Nextion Library
 #include <SD.h>              // PIO Adafruit SD Library
 #include <AliasColino.h>     // Aliases when using an Arduino instead of a Controllino
@@ -22,7 +21,7 @@
 #include <CycleStep.h>       // TODO ADD TO LIBRARY
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
-// DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
+// DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
 enum counter
 {
@@ -31,15 +30,7 @@ enum counter
   switch_counter,       // [s]
   end_of_counter_enum // Keep this entry
 };
-
 int counter_no_of_values = end_of_counter_enum;
-
-// DECLARATION OF VARIABLES
-//*****************************************************************************
-bool strap_detected;
-bool error_blink_state = false;
-byte timeout_detected = 0;
-int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
 // GENERATE INSTANCES OF CLASSES:
 //*****************************************************************************
@@ -51,15 +42,6 @@ Insomnia nex_reset_button_timeout;
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
-
-// NEXTION DISPLAY - DECLARATION OF VARIABLES
-//*****************************************************************************
-bool resetStopwatchActive = false;
-bool nextionPlayPauseButtonState;
-bool counterReseted = false;
-int currentPage = 0;
-unsigned long counterResetStopwatch;
-char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
 
 // NEXTION DISPLAY - OBJECTS
 //*****************************************************************************
@@ -81,14 +63,22 @@ const byte TEST_SWITCH_PIN = 2;
 Debounce test_switch(TEST_SWITCH_PIN);
 const byte MOTOR_RELAY_PIN = 50;
 
+// NEXTION VARIABLES AND NEXTION STATE CONTROLLER BOOLEANS
+bool resetStopwatchActive = false;
+bool nextionPlayPauseButtonState;
+bool counterReseted = false;
+int currentPage = 0;
+unsigned long counterResetStopwatch;
+char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
+
 // SENSORS:
 // n.a.
 
-// OTHER VARIABLES:
-bool previousButtonState;
-bool previousMachineState;
-bool machineRunning = false;
-bool buttonBlinkEnabled = false;
+// OTHER GLOBAL VARIABLES:
+bool strap_detected;
+bool error_blink_state = false;
+byte timeout_detected = 0;
+int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
 // NEXTION DISPLAY FUNCTIONS
 //*****************************************************************************
@@ -107,7 +97,6 @@ void updateDisplayCounter() {
   send_to_nextion();
 }
 
-
 void nex_switch_play_pausePushCallback(void *ptr) {
   counterResetStopwatch = millis();
   resetStopwatchActive = true;
@@ -116,7 +105,7 @@ void nex_switch_play_pausePushCallback(void *ptr) {
 void nex_switch_play_pausePopCallback(void *ptr) {
 
   if (counterReseted == false) {
-    machineRunning = !machineRunning;
+    state_controller.toggle_machine_running_state();
   } else {
     //counter has been reseted
     //change of machine state did not happen,
@@ -127,6 +116,7 @@ void nex_switch_play_pausePopCallback(void *ptr) {
   }
   resetStopwatchActive = false;
 }
+
 //*****************************************************************************
 void nextionSetup()
 //*****************************************************************************
@@ -174,6 +164,7 @@ void nextionLoop()
     }
   }
 }    //END OF NEXTION LOOP
+//*****************************************************************************
 
 // CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
@@ -229,6 +220,7 @@ private:
 //******************************************************************************
 int Cycle_step::object_count = 0; // enable object counting
 std::vector<Cycle_step *> cycle_steps;
+
 //*****************************************************************************
 void setup()
 {
@@ -253,7 +245,7 @@ void setup()
   //------------------------------------------------
    nextionSetup();
 }
-
+//*****************************************************************************
 void loop()
 {
 
@@ -299,17 +291,6 @@ void loop()
     std::cout << "---------------\n\n";
   }
 
-  // GET SIGNAL FROM TEST SWITCH AND COUNT IT:
-  bool debouncedButtonState = test_switch.requestButtonState();
-  if (previousButtonState != debouncedButtonState) {
-    if (debouncedButtonState == LOW) {
-      eeprom_counter.countOneUp(longtime_counter);
-      updateDisplayCounter();
-      
-    }
-    previousButtonState = debouncedButtonState;
-  }
-
-
  delay(1000);
 }
+//*****************************************************************************
