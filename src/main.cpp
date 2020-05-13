@@ -132,7 +132,6 @@ bool nextionPlayPauseButtonState;
 bool counterReseted = false;
 int currentPage = 0;
 unsigned long counterResetStopwatch;
-char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
 
 // NEXTION SWITCHSTATES
 bool nex_state_entlueftung;
@@ -184,6 +183,7 @@ void resetTestRig()
 
 // NEXTION GENERAL DISPLAY FUNCTIONS
 //*****************************************************************************
+
 void send_to_nextion() {
   Serial2.write(0xff);
   Serial2.write(0xff);
@@ -473,21 +473,8 @@ void nex_page_2_push(void *ptr)
   nex_prev_shorttime_counter = 0;
   nex_prev_longtime_counter = 0;
 }
-
 //*****************************************************************************
-void nextionSetup()
-//*****************************************************************************
-{
-  Serial2.begin(9600);
-
-  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
-  send_to_nextion(); // needed for unknown reasons
-  Serial2.print("rest");
-  send_to_nextion();
-
-  //*****************************************************************************
-  // REGISTER THE EVENT CALLBACK FUNCTIONS
-  //*****************************************************************************
+void setupEventCallbackFunctions(){
   // PAGE 0 PUSH ONLY:
   nex_page_0.attachPush(nexPage0PushCallback);
   // PAGE 1 PUSH ONLY:
@@ -519,16 +506,24 @@ void nextionSetup()
   // PAGE 2 PUSH AND POP:
   button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
-  
-  //*****************************************************************************
-  // END OF REGISTER
-  //*****************************************************************************
+  }
+//*****************************************************************************
+void nextionSetup()
+//*****************************************************************************
+{
+  Serial2.begin(9600);
 
+  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
+  send_to_nextion(); // needed for unknown reasons
+  Serial2.print("rest");
+  send_to_nextion();
+
+  setupEventCallbackFunctions();
+  
   delay(2000);
   sendCommand("page 1"); // switch display to page x
   send_to_nextion();
-
-} // END OF NEXTION SETUP
+} 
 //*****************************************************************************
 void nextionLoop()
 //*****************************************************************************
