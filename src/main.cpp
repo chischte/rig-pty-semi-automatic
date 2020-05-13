@@ -1,10 +1,8 @@
 /*
  * ****************************************************************************
- * RIG TEMPLATR
+ * PTY SEMI-AUTOMATIC-RIG
  * ****************************************************************************
- * Program for an endurance test of a mechanical switch
- * The switch will be pushed 100'000 times or more.
- * The number of pushes will be counted and displayed.
+ * Program for a semi-automatic endurance test rig for a mechanical tool
  * ****************************************************************************
  * Michael Wettstein
  * May 2020, Zürich
@@ -24,7 +22,6 @@
 #include <CycleStep.h>       // TODO ADD TO LIBRARY
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
-//*****************************************************************************
 // DEFINE NAMES AND SET UP VARIABLES FOR THE CYCLE COUNTER:
 //*****************************************************************************
 enum counter
@@ -37,7 +34,6 @@ enum counter
 
 int counter_no_of_values = end_of_counter_enum;
 
-//*****************************************************************************
 // DECLARATION OF VARIABLES
 //*****************************************************************************
 bool strap_detected;
@@ -45,21 +41,17 @@ bool error_blink_state = false;
 byte timeout_detected = 0;
 int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 
-//*****************************************************************************
 // GENERATE INSTANCES OF CLASSES:
 //*****************************************************************************
 Cylinder cylinder_schlitten(CONTROLLINO_D5);
 Cylinder cylinder_bandklemme(CONTROLLINO_D7);
 
-Insomnia error_blink_timer;
 unsigned long blink_delay = 600;
 Insomnia nex_reset_button_timeout;
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
-//*****************************************************************************
 
-//*****************************************************************************
 // NEXTION DISPLAY - DECLARATION OF VARIABLES
 //*****************************************************************************
 bool resetStopwatchActive = false;
@@ -68,26 +60,21 @@ bool counterReseted = false;
 int currentPage = 0;
 unsigned long counterResetStopwatch;
 char buffer[100] = { 0 }; // This is needed only if you are going to receive a text from the display.
-//*****************************************************************************
-//*****************************************************************************
-// NEXTION DISPLAY - DECLARATION OF OBJECTS TO BE READ
+
+// NEXTION DISPLAY - OBJECTS
 //*****************************************************************************
 // PAGE 0:
 NexDSButton nex_switch_play_pause = NexDSButton(0, 2, "bt0");
-//*****************************************************************************
-//*****************************************************************************
+
 // NEXTION DISPLAY - TOUCH EVENT LIST
 //*****************************************************************************
 NexTouch *nex_listen_list[] = { &nex_switch_play_pause,
 
 NULL //String terminated
         };
+
+// GLOBAL VARIABLES:
 //*****************************************************************************
-//*****************************************************************************
-
-
-
-
 
 // KNOBS AND POTENTIOMETERS:
 const byte TEST_SWITCH_PIN = 2;
@@ -103,17 +90,14 @@ bool previousMachineState;
 bool machineRunning = false;
 bool buttonBlinkEnabled = false;
 
-
-
-
+// NEXTION DISPLAY FUNCTIONS
+//*****************************************************************************
 void send_to_nextion() {
   Serial2.write(0xff);
   Serial2.write(0xff);
   Serial2.write(0xff);
 }
 
-
-//*****************************************************************************
 void updateDisplayCounter() {
   long newValue = eeprom_counter.getValue(longtime_counter);
   Serial2.print("t0.txt=");
@@ -123,9 +107,6 @@ void updateDisplayCounter() {
   send_to_nextion();
 }
 
-//*****************************************************************************
-// NEXTION DISPLAY - TOUCH EVENT FUNCTIONS
-//*****************************************************************************
 
 void nex_switch_play_pausePushCallback(void *ptr) {
   counterResetStopwatch = millis();
@@ -146,10 +127,6 @@ void nex_switch_play_pausePopCallback(void *ptr) {
   }
   resetStopwatchActive = false;
 }
-
-
-
-
 //*****************************************************************************
 void nextionSetup()
 //*****************************************************************************
@@ -177,7 +154,6 @@ void nextionSetup()
   Serial.println("END OF NEXTION SETUP");
 
 }  // END OF NEXTION SETUP
-
 //*****************************************************************************
 void nextionLoop()
 //*****************************************************************************
@@ -199,13 +175,7 @@ void nextionLoop()
   }
 }    //END OF NEXTION LOOP
 
-
-//*****************************************************************************
-// END OF TOUCH EVENT FUNCTIONS
-//*****************************************************************************
-
-//******************************************************************************
-// WRITE CLASSES FOR THE MAIN CYCLE STEPS
+// CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
 // TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
 // feed_upper_strap
@@ -215,7 +185,7 @@ void nextionLoop()
 // cut (open gate, then cut))
 // release brake
 // move sledge back
-//------------------------------------------------------------------------------
+
 //------------------------------------------------------------------------------
 class Step_wippenhebel : public Cycle_step
 {
@@ -255,13 +225,11 @@ private:
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-//******************************************************************************
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
 //******************************************************************************
 int Cycle_step::object_count = 0; // enable object counting
 std::vector<Cycle_step *> cycle_steps;
 //*****************************************************************************
-
 void setup()
 {
   //------------------------------------------------
@@ -285,6 +253,7 @@ void setup()
   //------------------------------------------------
    nextionSetup();
 }
+
 void loop()
 {
 
