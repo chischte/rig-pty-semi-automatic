@@ -82,11 +82,13 @@ NexButton button_motor_unten = NexButton(1, 8, "b3");
 
 // PAGE 2 - LEFT SIDE:
 NexPage nex_page_2 = NexPage(2, 0, "page2");
-NexButton button_slider_1_left = NexButton(2, 4, "b1");
-NexButton button_slider_1_right = NexButton(2, 5, "b2");
+NexButton button_slider_1_left = NexButton(2, 5, "b1");
+NexButton button_slider_1_right = NexButton(2, 6, "b2");
+NexButton button_slider_2_left = NexButton(2, 16, "b5");
+NexButton button_slider_2_right = NexButton(2, 17, "b6");
 
 // PAGE 2 - RIGHT SIDE:
-NexButton button_reset_shorttime_counter = NexButton(2, 11, "b4");
+NexButton button_reset_shorttime_counter = NexButton(2, 12, "b4");
 
 // NEXTION DISPLAY - TOUCH EVENT LIST
 //*****************************************************************************
@@ -100,7 +102,7 @@ NexTouch *nex_listen_list[] = { //
     &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
     &button_motor_oben, &button_motor_unten,
     // PAGE 2 LEFT:
-    &nex_page_2, &button_slider_1_left, &button_slider_1_right,
+    &nex_page_2, &button_slider_1_left, &button_slider_1_right,&nex_page_2, &button_slider_2_left, &button_slider_2_right,
     // PAGE 2 RIGHT:
     &button_reset_shorttime_counter,
       // END OF LISTEN LIST:
@@ -390,6 +392,41 @@ void button_slider_1_right_push(void *ptr)
     eeprom_counter.set(bandvorschub_oben, 120);
   } 
 }
+void button_slider_2_left_push(void *ptr)
+{
+  byte increment = 10;
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 20)
+  {
+    increment = 5;
+  }
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 10)
+  {
+    increment = 1;
+  }
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) - increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) < 4)
+  {
+    eeprom_counter.set(bandvorschub_oben, 4);
+  }
+ }
+void button_slider_2_right_push(void *ptr)
+{
+  byte increment = 10;
+
+  if (eeprom_counter.getValue(bandvorschub_oben) < 20)
+  {
+    increment = 5;
+  }
+  if (eeprom_counter.getValue(bandvorschub_oben) < 10)
+  {
+    increment = 1;
+  }
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) + increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) > 120)
+  {
+    eeprom_counter.set(bandvorschub_oben, 120);
+  } 
+}
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
 //*************************************************
@@ -477,6 +514,8 @@ void nextionSetup()
   nex_page_2.attachPush(nex_page_2_push);
   button_slider_1_left.attachPush(button_slider_1_left_push);
   button_slider_1_right.attachPush(button_slider_1_right_push);
+  button_slider_2_left.attachPush(button_slider_2_left_push);
+  button_slider_2_right.attachPush(button_slider_2_right_push);
   // PAGE 2 PUSH AND POP:
   button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
