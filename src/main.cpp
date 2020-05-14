@@ -214,14 +214,11 @@ void motor_brake_toggle()
 {
   if (motor_bremse_oben.get_state())
   {
-    motor_bremse_oben.set(0);
-    motor_bremse_unten.set(0);
+    motor_brake_enable();
   }
   else
   {
-    motor_bremse_oben.set(1);
-    motor_bremse_oben.set(1);
-    brake_timeout.resetTime();
+    motor_brake_release();
   }
 }
 
