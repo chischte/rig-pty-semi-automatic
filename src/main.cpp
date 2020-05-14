@@ -292,14 +292,15 @@ void nex_switch_play_pausePopCallback(void *ptr)
 
 void debug_cylinder_states()
 {
-  zylinder_entlueften.set(0);
-  zylinder_messer.set(0);
-  zylinder_visier.set(0);
-  zylinder_schlitten.set(0);
-  motor_band_oben.set(0);
-  motor_band_unten.set(0);
-  motor_bremse_oben.set(0);
-  motor_bremse_unten.set(0);
+  Serial.println("ZYLINDER_STATES: " +
+                 String(zylinder_entlueften.get_state()) +
+                 zylinder_messer.get_state() +
+                 zylinder_visier.get_state() +
+                 zylinder_schlitten.get_state() +
+                 motor_band_oben.get_state() +
+                 motor_band_unten.get_state() +
+                 motor_bremse_oben.get_state() +
+                 motor_bremse_unten.get_state());
 }
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE
 //*************************************************
@@ -555,7 +556,7 @@ void display_loop_page_1_right_side()
 {
 
   // UPDATE SWITCHBUTTON (dual state):
-  if (zylinder_entlueften.request_state() != nex_state_entlueftung)
+  if (zylinder_entlueften.get_state() != nex_state_entlueftung)
   {
     Serial2.print("click bt3,1");
     send_to_nextion();
@@ -563,7 +564,7 @@ void display_loop_page_1_right_side()
   }
 
   // UPDATE SWITCHBUTTON (dual state):
-  if (motor_bremse_oben.request_state() != nex_state_motorbremse)
+  if (motor_bremse_oben.get_state() != nex_state_motorbremse)
   {
     Serial2.print("click bt5,1");
     send_to_nextion();
@@ -571,9 +572,9 @@ void display_loop_page_1_right_side()
   }
 
   // UPDATE BUTTON (momentary):
-  if (zylinder_schlitten.request_state() != nex_state_schlitten)
+  if (zylinder_schlitten.get_state() != nex_state_schlitten)
   {
-    if (zylinder_schlitten.request_state())
+    if (zylinder_schlitten.get_state())
     {
       Serial2.print("click b6,1");
     }
@@ -582,13 +583,13 @@ void display_loop_page_1_right_side()
       Serial2.print("click b6,0");
     }
     send_to_nextion();
-    nex_state_schlitten = zylinder_schlitten.request_state();
+    nex_state_schlitten = zylinder_schlitten.get_state();
   }
 
   // UPDATE BUTTON (momentary):
-  if (motor_band_oben.request_state() != nex_motor_oben)
+  if (motor_band_oben.get_state() != nex_motor_oben)
   {
-    if (motor_band_oben.request_state())
+    if (motor_band_oben.get_state())
     {
       Serial2.print("click b4,1");
     }
@@ -597,13 +598,13 @@ void display_loop_page_1_right_side()
       Serial2.print("click b4,0");
     }
     send_to_nextion();
-    nex_motor_oben = motor_band_oben.request_state();
+    nex_motor_oben = motor_band_oben.get_state();
   }
 
   // UPDATE BUTTON (momentary):
-  if (zylinder_messer.request_state() != nex_state_messer)
+  if (zylinder_messer.get_state() != nex_state_messer)
   {
-    if (zylinder_messer.request_state())
+    if (zylinder_messer.get_state())
     {
       Serial2.print("click b5,1");
     }
@@ -612,13 +613,13 @@ void display_loop_page_1_right_side()
       Serial2.print("click b5,0");
     }
     send_to_nextion();
-    nex_state_messer = zylinder_messer.request_state();
+    nex_state_messer = zylinder_messer.get_state();
   }
 
   // UPDATE BUTTON (momentary):
-  if (motor_band_unten.request_state() != nex_state_motor_unten)
+  if (motor_band_unten.get_state() != nex_state_motor_unten)
   {
-    if (motor_band_unten.request_state())
+    if (motor_band_unten.get_state())
     {
       Serial2.print("click b3,1");
     }
@@ -627,7 +628,7 @@ void display_loop_page_1_right_side()
       Serial2.print("click b3,0");
     }
     send_to_nextion();
-    nex_state_motor_unten = motor_band_unten.request_state();
+    nex_state_motor_unten = motor_band_unten.get_state();
   }
 }
 void display_loop_page_2_left_side() {}
@@ -759,6 +760,25 @@ public:
   }
 };
 //------------------------------------------------------------------------------
+class Feed_lower_strap : public Cycle_step
+{
+public:
+  char *get_display_text()
+  {
+    char *display_text = (char *)malloc(20);
+    strcpy(display_text, "BAND UNTEN");
+    return display_text;
+  }
+  void do_stuff()
+  {
+    if (test_switch.switchedLow())
+    {
+      std::cout << "STEP COMPLETED\n";
+      set_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
 class Brake : public Cycle_step
 {
 public:
@@ -818,6 +838,7 @@ void setup()
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
   cycle_steps.push_back(new Feed_upper_strap);
+  cycle_steps.push_back(new Feed_lower_strap);
   cycle_steps.push_back(new Brake);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
@@ -851,8 +872,8 @@ void loop()
 
     char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
     display_string_cycle_name = display_text_cycle_name;
-    std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
-    std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
+    //std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
+    //std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
   }
 
   // RESET RIG IF RESET IS ACTIVATED:
@@ -879,5 +900,7 @@ void loop()
   }
   //int current_step_no=state_controller.get_current_step();
   //...WESHALB GEHT DAS NICHT?: Cycle_step current_cycle_step=cycle_steps[current_step_no];
+  debug_cylinder_states();
+  delay(800);
 }
 //*****************************************************************************
