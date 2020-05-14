@@ -65,6 +65,7 @@ Debounce sensor_lower_strap(CONTROLLINO_A1);
 
 Insomnia nex_reset_button_timeout;
 Insomnia brake_timeout(5000);
+Insomnia print_interval_timeout(500);
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
@@ -196,11 +197,12 @@ void resetTestRig()
 void motor_brake_enable()
 {
   motor_bremse_oben.set(1);
-  motor_bremse_oben.set(1);
+  motor_bremse_unten.set(1);
   brake_timeout.resetTime();
 }
 
-void motor_brake_release(){
+void motor_brake_release()
+{
   motor_bremse_oben.set(0);
   motor_bremse_oben.set(0);
 }
@@ -327,7 +329,7 @@ void nex_switch_play_pausePopCallback(void *ptr)
   reset_stopwatch_is_active = false;
 }
 
-void debug_cylinder_states()
+void print_cylinder_states()
 {
   Serial.println("ZYLINDER_STATES: " +
                  String(zylinder_entlueften.get_state()) +
@@ -940,7 +942,11 @@ void loop()
   }
   //int current_step_no=state_controller.get_current_step();
   //...WESHALB GEHT DAS NICHT?: Cycle_step current_cycle_step=cycle_steps[current_step_no];
-  debug_cylinder_states();
-  delay(500);
+  
+  // DISPLAY DEBUG INFOMATION:
+  if (print_interval_timeout.timedOut()){
+    print_cylinder_states();
+    print_interval_timeout.resetTime();
+  }
 }
 //*****************************************************************************
