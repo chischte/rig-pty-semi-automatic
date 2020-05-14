@@ -30,6 +30,7 @@ void page_0_push(void *ptr);
 void page_1_push(void *ptr);
 void page_2_push(void *ptr);
 void update_cycle_name();
+String get_display_string();
 
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
@@ -151,6 +152,12 @@ bool error_blink_state = false;
 byte timeout_detected = 0;
 int cycle_time_in_seconds = 30; // Estimated value for the timout timer
 String display_string_cycle_name;
+
+// CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
+//*****************************************************************************
+int Cycle_step::object_count = 0; // enable object counting
+std::vector<Cycle_step *> cycle_steps;
+//*****************************************************************************
 
 // NON NEXTION FUNCTIONS
 //*****************************************************************************
@@ -504,14 +511,19 @@ void display_loop_page_1_left_side(){
 void update_cycle_name(){
     if (nex_prev_cycle_step != state_controller.get_current_step())
     {
-      nex_prev_cycle_step = state_controller.get_current_step();
-      // char *display_text_cycle_name = cycle_steps[0]->get_display_text();
-      //char *display_text_cycle_name = cycle_steps[state_controller.get_current_step()]->get_display_text();
-       Serial.println(display_string_cycle_name+" OK");
-      delay(10);
-      print_on_text_field(display_string_cycle_name,"t0");
+      String string_to_display=get_display_string();
+       Serial.println(string_to_display +" OK");
+      delay(100);
+      print_on_text_field(string_to_display,"t0");
           //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
+    nex_prev_cycle_step = state_controller.get_current_step();
     }
+}
+
+String get_display_string(){
+int current_step = state_controller.get_current_step();
+      char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
+      return display_text_cycle_name;
 }
 
 void display_loop_page_1_right_side(){
@@ -753,11 +765,7 @@ private:
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-// CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
-//******************************************************************************
-int Cycle_step::object_count = 0; // enable object counting
-std::vector<Cycle_step *> cycle_steps;
-//*****************************************************************************
+
 void setup()
 {
   //------------------------------------------------
