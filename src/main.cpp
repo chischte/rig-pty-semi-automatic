@@ -511,14 +511,15 @@ void display_loop_page_1_left_side(){
 void update_cycle_name(){
     if (nex_prev_cycle_step != state_controller.get_current_step())
     {
-      String string_to_display=get_display_string();
-       Serial.println(string_to_display +" OK");
-      delay(100);
-      print_on_text_field(string_to_display,"t0");
+      String display_string=get_display_string();
+      display_string="1 " + display_string;
+       Serial.println(display_string);
+      print_on_text_field(display_string,"t0");
           //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
     nex_prev_cycle_step = state_controller.get_current_step();
     }
 }
+
 
 String get_display_string(){
 int current_step = state_controller.get_current_step();
