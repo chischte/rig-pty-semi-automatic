@@ -64,6 +64,7 @@ Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
 Insomnia nex_reset_button_timeout;
+Insomnia brake_timeout(5000);
 
 State_controller state_controller;
 EEPROM_Counter eeprom_counter;
@@ -190,6 +191,42 @@ void resetTestRig()
   clearTextField("t4");
   hideInfoField();
   state_controller.set_current_step_to(0);
+}
+
+void motor_brake_enable()
+{
+  motor_bremse_oben.set(1);
+  motor_bremse_oben.set(1);
+  brake_timeout.resetTime();
+}
+
+void motor_brake_release(){
+  motor_bremse_oben.set(0);
+  motor_bremse_oben.set(0);
+}
+
+void motor_brake_toggle()
+{
+  if (motor_bremse_oben.get_state())
+  {
+    motor_bremse_oben.set(0);
+    motor_bremse_unten.set(0);
+  }
+  else
+  {
+    motor_bremse_oben.set(1);
+    motor_bremse_oben.set(1);
+    brake_timeout.resetTime();
+  }
+}
+
+void monitor_motor_brake()
+{
+  if (brake_timeout.timedOut())
+  {
+    motor_bremse_oben.set(0);
+    motor_bremse_unten.set(0);
+  }
 }
 
 // NEXTION GENERAL DISPLAY FUNCTIONS
@@ -343,8 +380,7 @@ void button_reset_cycle_push(void *ptr)
 //*************************************************
 void button_klemmen_ds_pop(void *ptr)
 {
-  motor_bremse_oben.toggle();
-  motor_bremse_unten.toggle();
+  motor_brake_toggle();
   nex_state_motorbremse = !nex_state_motorbremse;
 }
 void button_motor_oben_push(void *ptr)
@@ -753,8 +789,7 @@ public:
     zylinder_schlitten.set(1);
     motor_band_oben.set(1);
     motor_band_unten.set(1);
-    motor_bremse_oben.set(1);
-    motor_bremse_unten.set(1);
+    motor_brake_enable();
     if (test_switch.switchedLow())
     {
       std::cout << "STEP COMPLETED\n";
@@ -799,8 +834,7 @@ public:
     zylinder_schlitten.set(0);
     motor_band_oben.set(0);
     motor_band_unten.set(0);
-    motor_bremse_oben.set(0);
-    motor_bremse_unten.set(0);
+    motor_brake_release();
     if (test_switch.switchedLow())
     {
       std::cout << "STEP COMPLETED\n";
@@ -867,6 +901,9 @@ void loop()
   // UPDDATE DISPLAY:
   nextion_display_loop();
 
+  // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
+  monitor_motor_brake();
+
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed())
   {
@@ -904,6 +941,6 @@ void loop()
   //int current_step_no=state_controller.get_current_step();
   //...WESHALB GEHT DAS NICHT?: Cycle_step current_cycle_step=cycle_steps[current_step_no];
   debug_cylinder_states();
-  delay(800);
+  delay(500);
 }
 //*****************************************************************************
