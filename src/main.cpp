@@ -22,10 +22,14 @@
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
 
-// DECLARE FUNCTIONS:
+// DECLARE SOME OF THE FUNCTIONS:
 //*****************************************************************************
 void clearTextField(String textField);
 void hideInfoField();
+void page_0_push(void *ptr);
+void page_1_push(void *ptr);
+void page_2_push(void *ptr);
+void update_cycle_name();
 
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
@@ -146,6 +150,7 @@ bool strap_detected;
 bool error_blink_state = false;
 byte timeout_detected = 0;
 int cycle_time_in_seconds = 30; // Estimated value for the timout timer
+String display_string_cycle_name;
 
 // NON NEXTION FUNCTIONS
 //*****************************************************************************
@@ -438,36 +443,6 @@ void button_reset_shorttime_counter_pop(void *ptr)
   reset_stopwatch_is_active = false;
 }
 
-// TOUCH EVENT FUNCTIONS PAGE CHANGES
-//*************************************************
-void page_0_push(void *ptr)
-{
-  current_page = 0;
-}
-void page_1_push(void *ptr)
-{
-  current_page = 1;
-  hideInfoField();
-
-  // REFRESH BUTTON STATES:
-  nex_prev_cycle_step = !state_controller.get_current_step();
-  nex_prev_step_mode = true;
-  nex_state_entlueftung = 0;
-  nex_state_motorbremse = 0;
-  nex_motor_oben = 0;
-  nex_state_schlitten = 0;
-  nex_state_messer = 0;
-  nex_state_motor_unten = 0;
-  nex_state_machine_running = 0;
-}
-void page_2_push(void *ptr)
-{
-  current_page = 2;
-  // REFRESH BUTTON STATES:
-  nex_prev_bandvorschub_oben = 0;
-  nex_prev_shorttime_counter = 0;
-  nex_prev_longtime_counter = 0;
-}
 //*****************************************************************************
 void setupEventCallbackFunctions(){
   // PAGE 0 PUSH ONLY:
@@ -502,16 +477,13 @@ void setupEventCallbackFunctions(){
   button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
   }
+
+// FUNCTIONS TO UPDATE DISPLAY SCREEN:
 //*****************************************************************************
 void display_loop_page_1_left_side(){
 
-    // UPDATE CYCLE NAME:
-    if (nex_prev_cycle_step != state_controller.get_current_step())
-    {
-      nex_prev_cycle_step = state_controller.get_current_step();
-      print_on_text_field("???","t0");
-          //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
-    }
+  update_cycle_name();
+
     // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
     if (nex_state_machine_running != state_controller.machine_is_running())
     {
@@ -528,6 +500,20 @@ void display_loop_page_1_left_side(){
       nex_prev_step_mode = state_controller.is_in_step_mode();
     }
 }
+
+void update_cycle_name(){
+    if (nex_prev_cycle_step != state_controller.get_current_step())
+    {
+      nex_prev_cycle_step = state_controller.get_current_step();
+      // char *display_text_cycle_name = cycle_steps[0]->get_display_text();
+      //char *display_text_cycle_name = cycle_steps[state_controller.get_current_step()]->get_display_text();
+       Serial.println(display_string_cycle_name+" OK");
+      delay(100);
+      print_on_text_field(display_string_cycle_name,"t0");
+          //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
+    }
+}
+
 void display_loop_page_1_right_side(){
    
     // UPDATE SWITCHBUTTON (dual state):
@@ -629,6 +615,35 @@ void display_loop_page_2_right_side(){
       }
     }
  }
+void page_0_push(void *ptr)
+{
+  current_page = 0;
+}
+void page_1_push(void *ptr)
+{
+  current_page = 1;
+  hideInfoField();
+
+  // REFRESH BUTTON STATES:
+  nex_prev_cycle_step = !state_controller.get_current_step();
+  nex_prev_step_mode = true;
+  nex_state_entlueftung = 0;
+  nex_state_motorbremse = 0;
+  nex_motor_oben = 0;
+  nex_state_schlitten = 0;
+  nex_state_messer = 0;
+  nex_state_motor_unten = 0;
+  nex_state_machine_running = 0;
+}
+void page_2_push(void *ptr)
+{
+  current_page = 2;
+  // REFRESH BUTTON STATES:
+  nex_prev_bandvorschub_oben = 0;
+  nex_prev_shorttime_counter = 0;
+  nex_prev_longtime_counter = 0;
+}
+
 //*****************************************************************************
 void nextionSetup(){
 //*****************************************************************************
@@ -648,12 +663,11 @@ void nextionSetup(){
 //*****************************************************************************
 void nextion_display_loop(){
 //*****************************************************************************
-
   nexLoop(nex_listen_list); // check for any touch event
 
   if (current_page == 1) {
-    display_loop_page_2_left_side();
-    display_loop_page_2_right_side();
+    display_loop_page_1_left_side();
+    display_loop_page_1_right_side();
   }
 
    if (current_page == 2){
@@ -760,9 +774,10 @@ void loop()
   {
     int current_step = state_controller.get_current_step();
     state_controller.switch_to_next_step();
-    char *display_text = cycle_steps[current_step]->get_display_text();
+    display_string_cycle_name=cycle_steps[current_step]->get_display_text();
+    char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
     std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
-    std::cout << "NEXT STEP NAME: " << display_text << "\n";
+    std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
   }
 
   // RESET RIG IF RESET IS ACTIVATED:
@@ -787,6 +802,8 @@ void loop()
     cycle_steps[state_controller.get_current_step()]->do_stuff();
     //std::cout << "---------------\n\n";
   }
+  //int current_step_no=state_controller.get_current_step();
+  //...WESHALB GEHT DAS NICHT?: Cycle_step current_cycle_step=cycle_steps[current_step_no];
  
 }
 //*****************************************************************************
