@@ -8,24 +8,26 @@
  * May 2020, Zürich
  * ****************************************************************************
  * TODO:
+ * Implement user info "WARTEN" in red and "CRIMPEN" in green
+ * Implement slider values (page 2 left side)
  * Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  * Implement Nextion, make button state monitoring more elegant
  * Implement sub step possibility
  * Implement timeout possibility, if smart, to abstract cycle step class
- * Implement Stepper motors and possibility to change [mm]
+ * Implement Stepper motors! ...and possibility to change [mm]
  */
 
 //#include <Controllino.h>   // PIO Controllino Library // Comment out when using an Arduino
 #include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
 #include <Nextion.h>         // PIO Nextion Library
 #include <SD.h>              // PIO Adafruit SD Library
-#include <AliasColino.h>     // Aliases when using an Arduino instead of a Controllino
+#include <AliasColino.h>     // aliases when using an Arduino instead of a Controllino
 #include <Cylinder.h>        // https://github.com/chischte/cylinder-library
 #include <Debounce.h>        // https://github.com/chischte/debounce-library
 #include <Insomnia.h>        // https://github.com/chischte/insomnia-delay-library
 #include <EEPROM_Counter.h>  // https://github.com/chischte/eeprom-counter-library
-#include <CycleStep.h>       // TODO ADD TO LIBRARY
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
+#include <CycleStep.h>       // blueprint of a cycle step
 
 // DECLARE SOME OF THE FUNCTIONS:
 //*****************************************************************************
@@ -51,6 +53,9 @@ int counter_no_of_values = end_of_counter_enum;
 
 // GENERATE INSTANCES OF CLASSES:
 //*****************************************************************************
+EEPROM_Counter eeprom_counter;
+State_controller state_controller;
+
 Cylinder zylinder_schlitten(CONTROLLINO_D3);
 Cylinder zylinder_entlueften(CONTROLLINO_D4);
 Cylinder zylinder_messer(CONTROLLINO_D8);
@@ -66,9 +71,6 @@ Debounce sensor_lower_strap(CONTROLLINO_A1);
 Insomnia nex_reset_button_timeout;
 Insomnia brake_timeout(5000);
 Insomnia print_interval_timeout(500);
-
-State_controller state_controller;
-EEPROM_Counter eeprom_counter;
 
 // NEXTION DISPLAY - OBJECTS
 //*****************************************************************************
@@ -125,7 +127,7 @@ const byte TEST_SWITCH_PIN = 2;
 Debounce test_switch(TEST_SWITCH_PIN);
 
 // NEXTION DISPLAY VARIABLES:
-bool reset_stopwatch_is_active;
+static bool reset_stopwatch_is_active;
 bool nextionPlayPauseButtonState;
 bool counterReseted = false;
 bool nex_state_entlueftung;
@@ -473,7 +475,7 @@ void button_slider_2_left_push(void *ptr)
   {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) - increment);
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_unten) - increment);
   if (eeprom_counter.getValue(bandvorschub_oben) < 4)
   {
     eeprom_counter.set(bandvorschub_oben, 4);
@@ -491,7 +493,7 @@ void button_slider_2_right_push(void *ptr)
   {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) + increment);
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_unten) + increment);
   if (eeprom_counter.getValue(bandvorschub_oben) > 120)
   {
     eeprom_counter.set(bandvorschub_oben, 120);
@@ -696,6 +698,7 @@ void display_loop_page_2_right_side()
     }
   }
 }
+
 void page_0_push(void *ptr)
 {
   current_page = 0;
@@ -944,9 +947,10 @@ void loop()
   }
   //int current_step_no=state_controller.get_current_step();
   //...WESHALB GEHT DAS NICHT?: Cycle_step current_cycle_step=cycle_steps[current_step_no];
-  
+
   // DISPLAY DEBUG INFOMATION:
-  if (print_interval_timeout.timedOut()){
+  if (print_interval_timeout.timedOut())
+  {
     print_cylinder_states();
     print_interval_timeout.resetTime();
   }
