@@ -686,8 +686,9 @@ public:
   }
   void do_stuff()
   {
-    motor_band_oben.stroke(1500, 1000);
-    if (motor_band_oben.stroke_completed())
+    //motor_band_oben.stroke(1500, 1000);
+    //if (motor_band_oben.stroke_completed())
+    if(test_switch.switchedLow())
     {
       std::cout << "Class I bytes ya tooth\n";
       set_completed();
