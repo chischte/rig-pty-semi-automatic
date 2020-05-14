@@ -841,6 +841,8 @@ public:
     {
       std::cout << "STEP COMPLETED\n";
       set_completed();
+      eeprom_counter.countOneUp(longtime_counter);
+      eeprom_counter.countOneUp(shorttime_counter);
     }
   }
 };
