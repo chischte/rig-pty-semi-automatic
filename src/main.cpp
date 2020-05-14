@@ -10,6 +10,7 @@
  * TODO:
  * Implement user info "WARTEN" in red and "CRIMPEN" in green
  * Implement slider values (page 2 left side)
+ * refactor insomnia
  * Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  * Implement Nextion, make button state monitoring more elegant
  * Implement sub step possibility
@@ -69,7 +70,7 @@ Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
 Insomnia nex_reset_button_timeout;
-Insomnia brake_timeout(5000);
+Insomnia brake_timeout(5000); // to prevent overheating
 Insomnia print_interval_timeout(500);
 
 // NEXTION DISPLAY - OBJECTS
@@ -876,6 +877,7 @@ private:
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+//*****************************************************************************
 void setup()
 {
   //------------------------------------------------
