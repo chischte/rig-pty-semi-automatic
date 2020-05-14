@@ -508,7 +508,7 @@ void update_cycle_name(){
       // char *display_text_cycle_name = cycle_steps[0]->get_display_text();
       //char *display_text_cycle_name = cycle_steps[state_controller.get_current_step()]->get_display_text();
        Serial.println(display_string_cycle_name+" OK");
-      delay(100);
+      delay(10);
       print_on_text_field(display_string_cycle_name,"t0");
           //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
     }
@@ -689,7 +689,45 @@ void nextion_display_loop(){
 // move sledge back
 
 //------------------------------------------------------------------------------
-class Step_wippenhebel : public Cycle_step
+class Feed_upper_strap : public Cycle_step
+{
+public:
+  char *get_display_text()
+  {
+    char *display_text = (char *)malloc(20);
+    strcpy(display_text, "BAND OBEN");
+    return display_text;
+  }
+  void do_stuff()
+  {
+    if(test_switch.switchedLow())
+    {
+      std::cout << "STEP COMPLETED\n";
+      set_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Brake : public Cycle_step
+{
+public:
+  char *get_display_text()
+  {
+    char *display_text = (char *)malloc(20);
+    strcpy(display_text, "BREMSEN");
+    return display_text;
+  }
+  void do_stuff()
+  {
+    if(test_switch.switchedLow())
+    {
+      std::cout << "STEP COMPLETED\n";
+      set_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+/* class Step_wippenhebel : public Cycle_step
 {
 public:
   char *get_display_text()
@@ -710,21 +748,8 @@ public:
   }
 
 private:
-};
+}; */
 //------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-// class Step_band_klemmen : public Cycle_step
-// {
-// public:
-//   char* get_display_string() { return "KLEMMEN"; }
-//   void do_stuff()
-//   {
-//     Serial.println("Class II bytes me teeth");
-//     set_completed();
-//   }
-
-// private:
-// };
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
@@ -738,8 +763,8 @@ void setup()
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
-  cycle_steps.push_back(new Step_wippenhebel);
-  //cycle_steps.push_back(new Step_band_klemmen);
+  cycle_steps.push_back(new Feed_upper_strap);
+  cycle_steps.push_back(new Brake);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
   int no_of_cycle_steps = Cycle_step::object_count;
@@ -752,6 +777,7 @@ void setup()
   state_controller.set_auto_mode();
   state_controller.set_machine_running();
   pinMode(TEST_SWITCH_PIN,INPUT_PULLUP); // DEACTIVATE FOR CONTROLLINO!
+  display_string_cycle_name=cycle_steps[0]->get_display_text();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
    nextionSetup();
@@ -759,14 +785,13 @@ void setup()
 //*****************************************************************************
 void loop()
 {
-
   // TODO:
   // Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
   // Implement Nextion, make button state monitoring more elegant
   // Implement sub step possibility
   // Implement timeout possibility, if smart, to abstract cycle step class
 
-   // GET INFOS FROM TOUCH DISPLAY:
+   // UPDDATE DISPLAY:
   nextion_display_loop();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
@@ -774,8 +799,9 @@ void loop()
   {
     int current_step = state_controller.get_current_step();
     state_controller.switch_to_next_step();
-    display_string_cycle_name=cycle_steps[current_step]->get_display_text();
+    
     char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
+    display_string_cycle_name=display_text_cycle_name;
     std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
     std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
   }
