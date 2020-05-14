@@ -370,10 +370,12 @@ void button_entlueften_ds_push(void *ptr)
 void button_schneiden_push(void *ptr)
 {
   zylinder_messer.set(1);
+  zylinder_visier.set(0);
 }
 void button_schneiden_pop(void *ptr)
 {
   zylinder_messer.set(0);
+  zylinder_visier.set(1);
 }
 void button_schlitten_push(void *ptr)
 {
