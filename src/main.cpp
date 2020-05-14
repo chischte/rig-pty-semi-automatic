@@ -344,6 +344,7 @@ void button_reset_cycle_push(void *ptr)
 void button_klemmen_ds_pop(void *ptr)
 {
   motor_bremse_oben.toggle();
+  motor_bremse_unten.toggle();
   nex_state_motorbremse = !nex_state_motorbremse;
 }
 void button_motor_oben_push(void *ptr)
