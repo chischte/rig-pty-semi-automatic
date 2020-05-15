@@ -21,13 +21,13 @@
 
 //#include <Controllino.h> // PIO Controllino Library
 // Comment out when using an Arduino
-#include <AliasColino.h> //     aliases when using an Arduino instead of a Controllino
-#include <ArduinoSTL.h>     //  https://github.com/mike-matera/ArduinoSTL
-#include <CycleStep.h>      //  blueprint of a cycle step
-#include <Cylinder.h>       //  https://github.com/chischte/cylinder-library
-#include <Debounce.h>       //  https://github.com/chischte/debounce-library
-#include <EEPROM_Counter.h> //  https://github.com/chischte/eeprom-counter-library
-#include <Insomnia.h> //        https://github.com/chischte/insomnia-delay-library
+#include <AliasColino.h>     //     aliases when using an Arduino instead of a Controllino
+#include <ArduinoSTL.h>      //  https://github.com/mike-matera/ArduinoSTL
+#include <CycleStep.h>       //  blueprint of a cycle step
+#include <Cylinder.h>        //  https://github.com/chischte/cylinder-library
+#include <Debounce.h>        //  https://github.com/chischte/debounce-library
+#include <EEPROM_Counter.h>  //  https://github.com/chischte/eeprom-counter-library
+#include <Insomnia.h>        //        https://github.com/chischte/insomnia-delay-library
 #include <Nextion.h>         // PIO Nextion Library
 #include <SD.h>              // PIO Adafruit SD Library
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
@@ -112,11 +112,11 @@ NexTouch *nex_listen_list[] = { //
     &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle,
     &button_play_pause_ds, &button_modeswitch_ds,
     // PAGE 1 RIGHT:
-    &button_schneiden, &button_klemmen_ds, &button_entlueften_ds,
-    &button_schlitten, &button_motor_oben, &button_motor_unten,
+    &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
+    &button_motor_oben, &button_motor_unten,
     // PAGE 2 LEFT:
-    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2,
-    &button_slider_2_left, &button_slider_2_right,
+    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2, &button_slider_2_left,
+    &button_slider_2_right,
     // PAGE 2 RIGHT:
     &button_reset_shorttime_counter,
     // END OF LISTEN LIST:
@@ -328,13 +328,10 @@ void button_modeswitch_ds_push(void *ptr) {
 }
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
-    state_controller.set_current_step_to(state_controller.get_current_step() -
-                                         1);
+    state_controller.set_current_step_to(state_controller.get_current_step() - 1);
   }
 }
-void button_next_step_push(void *ptr) {
-  state_controller.switch_to_next_step();
-}
+void button_next_step_push(void *ptr) { state_controller.switch_to_next_step(); }
 void button_reset_cycle_push(void *ptr) {
   state_controller.set_reset_mode(1);
   clear_text_field("t4");
@@ -376,8 +373,7 @@ void button_slider_1_left_push(void *ptr) {
   if (eeprom_counter.getValue(bandvorschub_oben) <= 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben,
-                     eeprom_counter.getValue(bandvorschub_oben) - increment);
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) - increment);
   if (eeprom_counter.getValue(bandvorschub_oben) < 4) {
     eeprom_counter.set(bandvorschub_oben, 4);
   }
@@ -391,8 +387,7 @@ void button_slider_1_right_push(void *ptr) {
   if (eeprom_counter.getValue(bandvorschub_oben) < 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben,
-                     eeprom_counter.getValue(bandvorschub_oben) + increment);
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) + increment);
   if (eeprom_counter.getValue(bandvorschub_oben) > 120) {
     eeprom_counter.set(bandvorschub_oben, 120);
   }
@@ -405,8 +400,7 @@ void button_slider_2_left_push(void *ptr) {
   if (eeprom_counter.getValue(bandvorschub_oben) <= 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben,
-                     eeprom_counter.getValue(bandvorschub_unten) - increment);
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_unten) - increment);
   if (eeprom_counter.getValue(bandvorschub_oben) < 4) {
     eeprom_counter.set(bandvorschub_oben, 4);
   }
@@ -420,8 +414,7 @@ void button_slider_2_right_push(void *ptr) {
   if (eeprom_counter.getValue(bandvorschub_oben) < 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben,
-                     eeprom_counter.getValue(bandvorschub_unten) + increment);
+  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_unten) + increment);
   if (eeprom_counter.getValue(bandvorschub_oben) > 120) {
     eeprom_counter.set(bandvorschub_oben, 120);
   }
@@ -436,9 +429,7 @@ void button_reset_shorttime_counter_push(void *ptr) {
   counter_reset_stopwatch = millis();
   reset_stopwatch_is_active = true;
 }
-void button_reset_shorttime_counter_pop(void *ptr) {
-  reset_stopwatch_is_active = false;
-}
+void button_reset_shorttime_counter_pop(void *ptr) { reset_stopwatch_is_active = false; }
 
 //*****************************************************************************
 void setupEventCallbackFunctions() {
@@ -471,8 +462,7 @@ void setupEventCallbackFunctions() {
   button_slider_2_left.attachPush(button_slider_2_left_push);
   button_slider_2_right.attachPush(button_slider_2_right_push);
   // PAGE 2 PUSH AND POP:
-  button_reset_shorttime_counter.attachPush(
-      button_reset_shorttime_counter_push);
+  button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
 
@@ -579,17 +569,14 @@ void display_loop_page_2_left_side() {}
 void display_loop_page_2_right_side() {
   // UPDATE UPPER COUNTER:
   if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter)) {
-    print_on_text_field(String(eeprom_counter.getValue(longtime_counter)),
-                        "t10");
+    print_on_text_field(String(eeprom_counter.getValue(longtime_counter)), "t10");
     // PrintOnTextField((eepromCounter.getValue(longtime_counter) + ("")),
     // "t10");
     nex_prev_longtime_counter = eeprom_counter.getValue(longtime_counter);
   }
   // UPDATE LOWER COUNTER:
-  if (nex_prev_shorttime_counter !=
-      eeprom_counter.getValue(shorttime_counter)) {
-    print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)),
-                        "t12");
+  if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttime_counter)) {
+    print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)), "t12");
     nex_prev_shorttime_counter = eeprom_counter.getValue(shorttime_counter);
   }
   if (reset_stopwatch_is_active) {
@@ -794,8 +781,7 @@ void loop() {
     int current_step = state_controller.get_current_step();
     state_controller.switch_to_next_step();
 
-    char *display_text_cycle_name =
-        cycle_steps[current_step]->get_display_text();
+    char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
     display_string_cycle_name = display_text_cycle_name;
     // std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
     // std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
