@@ -42,6 +42,9 @@ void page_2_push(void *ptr);
 void update_cycle_name();
 void update_upper_slider_value();
 void update_lower_slider_value();
+void update_upper_counter_value();
+void update_lower_counter_value();
+void reset_lower_counter_value();
 String get_display_string();
 
 // DEFINE NAMES CYCLE COUNTER:
@@ -72,8 +75,8 @@ Cylinder motor_bremse_unten(CONTROLLINO_D9);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
-Insomnia nex_reset_button_timeout;
-Insomnia brake_timeout(5000); // to prevent overheating
+Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
+Insomnia brake_timeout(5000);            // to prevent overheating
 Insomnia print_interval_timeout(500);
 
 // NEXTION DISPLAY - OBJECTS
@@ -132,7 +135,7 @@ const byte TEST_SWITCH_PIN = 2;
 Debounce test_switch(TEST_SWITCH_PIN);
 
 // NEXTION DISPLAY VARIABLES:
-static bool reset_stopwatch_is_active;
+
 bool nextion_play_pause_button_state;
 bool counterReseted = false;
 bool nex_state_entlueftung;
@@ -288,23 +291,11 @@ void print_on_text_field(String text, String textField) {
 }
 
 void nex_switch_play_pausePushCallback(void *ptr) {
-  counter_reset_stopwatch = millis();
-  reset_stopwatch_is_active = true;
+  state_controller.toggle_machine_running_state();
 }
 
 void nex_switch_play_pausePopCallback(void *ptr) {
-
-  if (counterReseted == false) {
-    state_controller.toggle_machine_running_state();
-  } else {
-    // counter has been reseted
-    // change of machine state did not happen,
-    // therefore switch the button layout back:
-    Serial2.print("click bt0,1"); // click button
-    send_to_nextion();
-    counterReseted = false; // counter reset steps completed
-  }
-  reset_stopwatch_is_active = false;
+  state_controller.toggle_machine_running_state();
 }
 
 void print_cylinder_states() {
@@ -428,11 +419,13 @@ void button_lower_slider_right_push(void *ptr) {
 void button_reset_shorttime_counter_push(void *ptr) {
   eeprom_counter.set(shorttime_counter, 0);
 
-  // RESET LONGTIME COUNTER IF RESET BUTTON IS PRESSED LONG ENOUGH:
-  counter_reset_stopwatch = millis();
-  reset_stopwatch_is_active = true;
+  // ACTIVATE TIMEOUT TO RESET LONGTIME COUNTER:
+  nex_reset_button_timeout.resetTime();
+  nex_reset_button_timeout.set_flag_activated(1);
 }
-void button_reset_shorttime_counter_pop(void *ptr) { reset_stopwatch_is_active = false; }
+void button_reset_shorttime_counter_pop(void *ptr) {
+  nex_reset_button_timeout.set_flag_activated(0);
+}
 
 //*****************************************************************************
 void setupEventCallbackFunctions() {
@@ -468,6 +461,7 @@ void setupEventCallbackFunctions() {
   button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
+//******************************************************************************
 
 // FUNCTIONS TO UPDATE DISPLAY SCREEN:
 //******************************************************************************
@@ -507,7 +501,7 @@ String get_display_string() {
   char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
   return display_text_cycle_name;
 }
-
+//------------------------------------------------------------------------------
 void display_loop_page_1_right_side() {
 
   // UPDATE SWITCHBUTTON (dual state):
@@ -568,7 +562,7 @@ void display_loop_page_1_right_side() {
     nex_state_motor_unten = motor_band_unten.get_state();
   }
 }
-
+//------------------------------------------------------------------------------
 void display_loop_page_2_left_side() {
 
   update_upper_slider_value();
@@ -588,28 +582,39 @@ void update_lower_slider_value() {
     nex_lower_strap_feed = eeprom_counter.getValue(lower_strap_feed);
   }
 }
-
+//------------------------------------------------------------------------------
 void display_loop_page_2_right_side() {
+  update_upper_counter_value();
+  update_lower_counter_value();
+  reset_lower_counter_value();
+}
 
-  // UPDATE UPPER COUNTER:
+void update_upper_counter_value() {
   if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter)) {
-    // print_on_text_field(String(eeprom_counter.getValue(longtime_counter)), "t10");
-    // PrintOnTextField((eepromCounter.getValue(longtime_counter) + ("")),
-    // "t10");
+    print_on_text_field(String(eeprom_counter.getValue(longtime_counter)), "t10");
     nex_prev_longtime_counter = eeprom_counter.getValue(longtime_counter);
   }
+}
+
+void update_lower_counter_value() {
   // UPDATE LOWER COUNTER:
   if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttime_counter)) {
     print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)), "t12");
     nex_prev_shorttime_counter = eeprom_counter.getValue(shorttime_counter);
   }
-  if (reset_stopwatch_is_active) {
-    if (millis() - counter_reset_stopwatch > 5000) {
+}
+
+void reset_lower_counter_value() {
+  if (nex_reset_button_timeout.active()) {
+    Serial.println("HAUDI");
+    if (nex_reset_button_timeout.timedOut()) {
+      Serial.println("GAUDI");
       eeprom_counter.set(longtime_counter, 0);
     }
   }
 }
 
+//------------------------------------------------------------------------------
 void page_0_push(void *ptr) { current_page = 0; }
 void page_1_push(void *ptr) {
   current_page = 1;
