@@ -19,23 +19,23 @@
  * Implement Stepper motors! ...and possibility to change [mm]
  */
 
-//#include <Controllino.h>   // PIO Controllino Library // Comment out when
-// using an Arduino
-#include <AliasColino.h> // aliases when using an Arduino instead of a Controllino
-#include <ArduinoSTL.h>     // https://github.com/mike-matera/ArduinoSTL
-#include <CycleStep.h>      // blueprint of a cycle step
-#include <Cylinder.h>       // https://github.com/chischte/cylinder-library
-#include <Debounce.h>       // https://github.com/chischte/debounce-library
-#include <EEPROM_Counter.h> // https://github.com/chischte/eeprom-counter-library
-#include <Insomnia.h> // https://github.com/chischte/insomnia-delay-library
-#include <Nextion.h>  // PIO Nextion Library
-#include <SD.h>       // PIO Adafruit SD Library
+//#include <Controllino.h> // PIO Controllino Library
+// Comment out when using an Arduino
+#include <AliasColino.h> //     aliases when using an Arduino instead of a Controllino
+#include <ArduinoSTL.h>     //  https://github.com/mike-matera/ArduinoSTL
+#include <CycleStep.h>      //  blueprint of a cycle step
+#include <Cylinder.h>       //  https://github.com/chischte/cylinder-library
+#include <Debounce.h>       //  https://github.com/chischte/debounce-library
+#include <EEPROM_Counter.h> //  https://github.com/chischte/eeprom-counter-library
+#include <Insomnia.h> //        https://github.com/chischte/insomnia-delay-library
+#include <Nextion.h>         // PIO Nextion Library
+#include <SD.h>              // PIO Adafruit SD Library
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
 
 // DECLARE SOME OF THE FUNCTIONS:
 //*****************************************************************************
-void clearTextField(String textField);
-void hideInfoField();
+void clear_text_field(String textField);
+void hide_info_field();
 void page_0_push(void *ptr);
 void page_1_push(void *ptr);
 void page_2_push(void *ptr);
@@ -49,7 +49,7 @@ enum counter {
   shorttime_counter,  //
   bandvorschub_oben,  // [mm]
   bandvorschub_unten, // [mm]
-  end_of_counter_enum // Keep this entry
+  end_of_counter_enum // keep this entry
 };
 int counter_no_of_values = end_of_counter_enum;
 
@@ -131,7 +131,7 @@ Debounce test_switch(TEST_SWITCH_PIN);
 
 // NEXTION DISPLAY VARIABLES:
 static bool reset_stopwatch_is_active;
-bool nextionPlayPauseButtonState;
+bool nextion_play_pause_button_state;
 bool counterReseted = false;
 bool nex_state_entlueftung;
 bool nex_state_motorbremse;
@@ -145,7 +145,7 @@ bool nex_prev_step_mode = true;
 byte nex_prev_cycle_step;
 byte current_page = 0;
 
-unsigned int stoppedButtonPushtime;
+unsigned int stopped_button_pushtime;
 
 long nex_prev_bandvorschub_oben;
 long buttonPushStopwatch;
@@ -153,7 +153,7 @@ long nex_prev_shorttime_counter;
 long nex_prev_longtime_counter;
 long counter_reset_stopwatch;
 
-unsigned long counterResetStopwatch;
+//?????????????? signed oder unsigned long? counter_reset_stopwatch;
 
 // SENSORS:
 // n.a.
@@ -173,7 +173,7 @@ std::vector<Cycle_step *> cycle_steps;
 
 // NON NEXTION FUNCTIONS
 //*****************************************************************************
-void resetCylinderStates() {
+void reset_cylinder_states() {
   zylinder_schlitten.set(0);
   motor_band_oben.set(0);
   motor_band_unten.set(0);
@@ -182,17 +182,17 @@ void resetCylinderStates() {
   zylinder_entlueften.set(0);
 }
 
-void stopTestRig() {
-  resetCylinderStates();
+void stop_machine() {
+  reset_cylinder_states();
   state_controller.set_step_mode();
   state_controller.set_machine_stop();
 }
 
-void resetTestRig() {
+void reset_machine() {
   state_controller.set_machine_stop();
-  resetCylinderStates();
-  clearTextField("t4");
-  hideInfoField();
+  reset_cylinder_states();
+  clear_text_field("t4");
+  hide_info_field();
   state_controller.set_current_step_to(0);
 }
 
@@ -202,7 +202,7 @@ void motor_brake_enable() {
   brake_timeout.resetTime();
 }
 
-void motor_brake_release() {
+void motor_brake_disable() {
   motor_bremse_oben.set(0);
   motor_bremse_oben.set(0);
 }
@@ -211,7 +211,7 @@ void motor_brake_toggle() {
   if (motor_bremse_oben.get_state()) {
     motor_brake_enable();
   } else {
-    motor_brake_release();
+    motor_brake_disable();
   }
 }
 
@@ -231,30 +231,30 @@ void send_to_nextion() {
   Serial2.write(0xff);
 }
 
-void updateDisplayCounter() {
-  long newValue = eeprom_counter.getValue(longtime_counter);
+void update_display_counter() {
+  long new_value = eeprom_counter.getValue(longtime_counter);
   Serial2.print("t0.txt=");
   Serial2.print("\"");
-  Serial2.print(newValue);
+  Serial2.print(new_value);
   Serial2.print("\"");
   send_to_nextion();
 }
 
-void showInfoField() {
+void show_info_field() {
   if (current_page == 1) {
     Serial2.print("vis t4,1");
     send_to_nextion();
   }
 }
 
-void hideInfoField() {
+void hide_info_field() {
   if (current_page == 1) {
     Serial2.print("vis t4,0");
     send_to_nextion();
   }
 }
 
-void clearTextField(String textField) {
+void clear_text_field(String textField) {
   Serial2.print(textField);
   Serial2.print(".txt=");
   Serial2.print("\"");
@@ -263,14 +263,14 @@ void clearTextField(String textField) {
   send_to_nextion();
 }
 
-void printOnValueField(int value, String valueField) {
+void print_on_value_field(int value, String valueField) {
   Serial2.print(valueField);
   Serial2.print(".val=");
   Serial2.print(value);
   send_to_nextion();
 }
 
-void printCurrentStep() {
+void print_current_step() {
   Serial.print(state_controller.get_current_step());
   Serial.print(" ");
   // Serial.println(cycleName[state_controller.currentCycleStep()]);
@@ -286,7 +286,7 @@ void print_on_text_field(String text, String textField) {
 }
 
 void nex_switch_play_pausePushCallback(void *ptr) {
-  counterResetStopwatch = millis();
+  counter_reset_stopwatch = millis();
   reset_stopwatch_is_active = true;
 }
 
@@ -337,8 +337,8 @@ void button_next_step_push(void *ptr) {
 }
 void button_reset_cycle_push(void *ptr) {
   state_controller.set_reset_mode(1);
-  clearTextField("t4");
-  hideInfoField();
+  clear_text_field("t4");
+  hide_info_field();
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE
@@ -602,7 +602,7 @@ void display_loop_page_2_right_side() {
 void page_0_push(void *ptr) { current_page = 0; }
 void page_1_push(void *ptr) {
   current_page = 1;
-  hideInfoField();
+  hide_info_field();
 
   // REFRESH BUTTON STATES:
   nex_prev_cycle_step = !state_controller.get_current_step();
@@ -719,7 +719,7 @@ public:
     zylinder_schlitten.set(0);
     motor_band_oben.set(0);
     motor_band_unten.set(0);
-    motor_brake_release();
+    motor_brake_disable();
     if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
@@ -774,8 +774,7 @@ void setup() {
   Serial.begin(115200);
   state_controller.set_auto_mode();
   state_controller.set_machine_running();
-  pinMode(TEST_SWITCH_PIN,
-          INPUT_PULLUP); // DEACTIVATE INPUT_PULLUP FOR CONTROLLINO !!!
+  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // !!! DEACTIVATE FOR CONTROLLINO !!!
   display_string_cycle_name = cycle_steps[0]->get_display_text();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
