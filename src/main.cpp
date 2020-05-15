@@ -19,18 +19,17 @@
  * Implement Stepper motors! ...and possibility to change [mm]
  */
 
-//#include <Controllino.h> // PIO Controllino Library
-// Comment out when using an Arduino
-#include <AliasColino.h>     //     aliases when using an Arduino instead of a Controllino
-#include <ArduinoSTL.h>      //  https://github.com/mike-matera/ArduinoSTL
-#include <CycleStep.h>       //  blueprint of a cycle step
-#include <Cylinder.h>        //  https://github.com/chischte/cylinder-library
-#include <Debounce.h>        //  https://github.com/chischte/debounce-library
-#include <EEPROM_Counter.h>  //  https://github.com/chischte/eeprom-counter-library
-#include <Insomnia.h>        //        https://github.com/chischte/insomnia-delay-library
-#include <Nextion.h>         // PIO Nextion Library
-#include <SD.h>              // PIO Adafruit SD Library
-#include <StateController.h> // https://github.com/chischte/state-controller-library.git
+//#include <Controllino.h> // PIO Controllino Library, comment out when using an Arduino
+#include <AliasColino.h> //         aliases when using an Arduino instead of a Controllino
+#include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
+#include <CycleStep.h> //           blueprint of a cycle step
+#include <Cylinder.h> //            https://github.com/chischte/cylinder-library
+#include <Debounce.h> //            https://github.com/chischte/debounce-library
+#include <EEPROM_Counter.h> //      https://github.com/chischte/eeprom-counter-library
+#include <Insomnia.h> //            https://github.com/chischte/insomnia-delay-library
+#include <Nextion.h> //             PIO Nextion Library
+#include <SD.h> //                  PIO Adafruit SD Library
+#include <StateController.h> //     https://github.com/chischte/state-controller-library.git
 
 // DECLARE SOME OF THE FUNCTIONS:
 //*****************************************************************************
@@ -50,10 +49,10 @@ String get_display_string();
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
 enum counter {
-  longtime_counter,   //
-  shorttime_counter,  //
-  upper_strap_feed,   // [mm]
-  lower_strap_feed,   // [mm]
+  longtime_counter, //
+  shorttime_counter, //
+  upper_strap_feed, // [mm]
+  lower_strap_feed, // [mm]
   end_of_counter_enum // keep this entry
 };
 int counter_no_of_values = end_of_counter_enum;
@@ -76,7 +75,7 @@ Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
-Insomnia brake_timeout(5000);            // to prevent overheating
+Insomnia brake_timeout(5000); // to prevent overheating
 Insomnia print_interval_timeout(500);
 
 // NEXTION DISPLAY - OBJECTS
@@ -646,7 +645,7 @@ void nextionSetup() {
   Serial2.begin(9600);
 
   // RESET NEXTION DISPLAY: (refresh display after PLC restart)
-  send_to_nextion();     // needed to start communication
+  send_to_nextion(); // needed to start communication
   Serial2.print("rest"); // Reset
   send_to_nextion();
 
