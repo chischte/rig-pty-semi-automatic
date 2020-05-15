@@ -8,9 +8,20 @@
  * May 2020, Zürich
  * ****************************************************************************
  * TODO:
+ * 
+ * Remove variable slider increment for sliders on page 2
  * Implement user info "WARTEN" in red and "CRIMPEN" in green
- * Implement slider values (page 2 left side)
- * refactor insomnia
+ * Make slider values displayed with mm
+ * Find unused variables ...how?
+ * Clean up code
+ * Split insomnia in two libraries (delay and timeout)
+ * Implement stepper motor driver library and code
+ * Install code check tools
+ * 
+ * For all submodule libraries:
+ *    Make a "legacy branch" at the state of the current master branch
+ *    Merge the current develop branch to master  
+ * 
  * Read:
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  * Implement Nextion, make button state monitoring more elegant
@@ -203,7 +214,7 @@ void reset_machine() {
 void motor_brake_enable() {
   motor_bremse_oben.set(1);
   motor_bremse_unten.set(1);
-  brake_timeout.resetTime();
+  brake_timeout.reset_time();
 }
 
 void motor_brake_disable() {
@@ -220,7 +231,7 @@ void motor_brake_toggle() {
 }
 
 void monitor_motor_brake() {
-  if (brake_timeout.timedOut()) {
+  if (brake_timeout.has_timed_out()) {
     motor_bremse_oben.set(0);
     motor_bremse_unten.set(0);
   }
@@ -419,7 +430,7 @@ void button_reset_shorttime_counter_push(void *ptr) {
   eeprom_counter.set(shorttime_counter, 0);
 
   // ACTIVATE TIMEOUT TO RESET LONGTIME COUNTER:
-  nex_reset_button_timeout.resetTime();
+  nex_reset_button_timeout.reset_time();
   nex_reset_button_timeout.set_flag_activated(1);
 }
 void button_reset_shorttime_counter_pop(void *ptr) {
@@ -604,9 +615,9 @@ void update_lower_counter_value() {
 }
 
 void reset_lower_counter_value() {
-  if (nex_reset_button_timeout.active()) {
+  if (nex_reset_button_timeout.is_marked_activated()) {
     Serial.println("HAUDI");
-    if (nex_reset_button_timeout.timedOut()) {
+    if (nex_reset_button_timeout.has_timed_out()) {
       Serial.println("GAUDI");
       eeprom_counter.set(longtime_counter, 0);
     }
@@ -839,9 +850,9 @@ void loop() {
   // current_cycle_step=cycle_steps[current_step_no];
 
   // DISPLAY DEBUG INFOMATION:
-  if (print_interval_timeout.timedOut()) {
+  if (print_interval_timeout.has_timed_out()) {
     // print_cylinder_states();
-    print_interval_timeout.resetTime();
+    print_interval_timeout.reset_time();
   }
 }
 //*****************************************************************************
