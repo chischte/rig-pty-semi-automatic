@@ -82,6 +82,8 @@ Cylinder motor_band_unten(CONTROLLINO_D6);
 Cylinder motor_bremse_oben(CONTROLLINO_D7);
 Cylinder motor_bremse_unten(CONTROLLINO_D9);
 
+const byte TEST_SWITCH_PIN = 2; // needed for the temporary pullup
+Debounce test_switch(TEST_SWITCH_PIN);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
@@ -137,48 +139,28 @@ NexTouch *nex_listen_list[] = { //
     // END OF LISTEN LIST:
     NULL};
 
-// GLOBAL VARIABLES:
+// VARIABLES TO MONITOR NEXTION DISPLAY STATES:
 //*****************************************************************************
-
-// KNOBS AND POTENTIOMETERS:
-const byte TEST_SWITCH_PIN = 2;
-Debounce test_switch(TEST_SWITCH_PIN);
-
-// NEXTION DISPLAY VARIABLES:
-
-bool nextion_play_pause_button_state;
-bool counterReseted = false;
+bool nex_state_play_pause_button;
 bool nex_state_entlueftung;
 bool nex_state_motorbremse;
-bool nex_motor_oben;
+bool nex_state_motor_oben;
 bool nex_state_schlitten;
 bool nex_state_messer;
 bool nex_state_machine_running;
 bool nex_state_motor_unten;
-bool nex_prev_step_mode = true;
+bool nex_state_step_mode = true;
 
 byte nex_prev_cycle_step;
 byte current_page = 0;
 
-unsigned int stopped_button_pushtime;
-
-long nex_upper_strap_feed;
+long
+    nex_upper_strap_feed; //....can maybe be replaced with a function like "update strap feed display()"
 long nex_lower_strap_feed;
-long button_push_stopwatch;
 long nex_prev_shorttime_counter;
 long nex_prev_longtime_counter;
 
-unsigned long counter_reset_stopwatch;
-
-// SENSORS:
-// n.a.
-
-// OTHER GLOBAL VARIABLES:
-bool strap_detected;
-bool error_blink_state = false;
-byte timeout_detected = 0;
-int cycle_time_in_seconds = 30; // Estimated value for the timout timer
-String display_string_cycle_name;
+String display_string_cycle_name; // ...make more elegant / ...pack it in a function?
 
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
 //*****************************************************************************
@@ -327,7 +309,7 @@ void button_modeswitch_ds_push(void *ptr) {
   } else {
     state_controller.set_auto_mode();
   }
-  nex_prev_step_mode = state_controller.is_in_step_mode();
+  nex_state_step_mode = state_controller.is_in_step_mode();
 }
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
@@ -487,10 +469,10 @@ void display_loop_page_1_left_side() {
   }
 
   // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
-  if (nex_prev_step_mode != state_controller.is_in_step_mode()) {
+  if (nex_state_step_mode != state_controller.is_in_step_mode()) {
     Serial2.print("click bt1,1");
     send_to_nextion();
-    nex_prev_step_mode = state_controller.is_in_step_mode();
+    nex_state_step_mode = state_controller.is_in_step_mode();
   }
 }
 
@@ -540,14 +522,14 @@ void display_loop_page_1_right_side() {
   }
 
   // UPDATE BUTTON (momentary):
-  if (motor_band_oben.get_state() != nex_motor_oben) {
+  if (motor_band_oben.get_state() != nex_state_motor_oben) {
     if (motor_band_oben.get_state()) {
       Serial2.print("click b4,1");
     } else {
       Serial2.print("click b4,0");
     }
     send_to_nextion();
-    nex_motor_oben = motor_band_oben.get_state();
+    nex_state_motor_oben = motor_band_oben.get_state();
   }
 
   // UPDATE BUTTON (momentary):
@@ -632,10 +614,10 @@ void page_1_push(void *ptr) {
 
   // REFRESH BUTTON STATES:
   nex_prev_cycle_step = !state_controller.get_current_step();
-  nex_prev_step_mode = true;
+  nex_state_step_mode = true;
   nex_state_entlueftung = 0;
   nex_state_motorbremse = 0;
-  nex_motor_oben = 0;
+  nex_state_motor_oben = 0;
   nex_state_schlitten = 0;
   nex_state_messer = 0;
   nex_state_motor_unten = 0;
