@@ -11,24 +11,26 @@
  * Implement user info "WARTEN" in red and "CRIMPEN" in green
  * Implement slider values (page 2 left side)
  * refactor insomnia
- * Read: https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
+ * Read:
+ * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  * Implement Nextion, make button state monitoring more elegant
  * Implement sub step possibility
  * Implement timeout possibility, if smart, to abstract cycle step class
  * Implement Stepper motors! ...and possibility to change [mm]
  */
 
-//#include <Controllino.h>   // PIO Controllino Library // Comment out when using an Arduino
-#include <ArduinoSTL.h>      // https://github.com/mike-matera/ArduinoSTL
-#include <Nextion.h>         // PIO Nextion Library
-#include <SD.h>              // PIO Adafruit SD Library
-#include <AliasColino.h>     // aliases when using an Arduino instead of a Controllino
-#include <Cylinder.h>        // https://github.com/chischte/cylinder-library
-#include <Debounce.h>        // https://github.com/chischte/debounce-library
-#include <Insomnia.h>        // https://github.com/chischte/insomnia-delay-library
-#include <EEPROM_Counter.h>  // https://github.com/chischte/eeprom-counter-library
+//#include <Controllino.h>   // PIO Controllino Library // Comment out when
+// using an Arduino
+#include <AliasColino.h> // aliases when using an Arduino instead of a Controllino
+#include <ArduinoSTL.h>     // https://github.com/mike-matera/ArduinoSTL
+#include <CycleStep.h>      // blueprint of a cycle step
+#include <Cylinder.h>       // https://github.com/chischte/cylinder-library
+#include <Debounce.h>       // https://github.com/chischte/debounce-library
+#include <EEPROM_Counter.h> // https://github.com/chischte/eeprom-counter-library
+#include <Insomnia.h> // https://github.com/chischte/insomnia-delay-library
+#include <Nextion.h>  // PIO Nextion Library
+#include <SD.h>       // PIO Adafruit SD Library
 #include <StateController.h> // https://github.com/chischte/state-controller-library.git
-#include <CycleStep.h>       // blueprint of a cycle step
 
 // DECLARE SOME OF THE FUNCTIONS:
 //*****************************************************************************
@@ -42,8 +44,7 @@ String get_display_string();
 
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
-enum counter
-{
+enum counter {
   longtime_counter,   //
   shorttime_counter,  //
   bandvorschub_oben,  // [mm]
@@ -77,7 +78,7 @@ Insomnia print_interval_timeout(500);
 //*****************************************************************************
 // PAGE 0:
 NexPage nex_page_0 = NexPage(0, 0, "page0");
-//PAGE 1 - LEFT SIDE:
+// PAGE 1 - LEFT SIDE:
 NexPage nex_page_1 = NexPage(1, 0, "page1");
 NexButton button_previous_step = NexButton(1, 6, "b1");
 NexButton button_next_step = NexButton(1, 7, "b2");
@@ -108,13 +109,14 @@ NexTouch *nex_listen_list[] = { //
     // PAGE 0:
     &nex_page_0,
     // PAGE 1 LEFT:
-    &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle, &button_play_pause_ds,
-    &button_modeswitch_ds,
+    &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle,
+    &button_play_pause_ds, &button_modeswitch_ds,
     // PAGE 1 RIGHT:
-    &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
-    &button_motor_oben, &button_motor_unten,
+    &button_schneiden, &button_klemmen_ds, &button_entlueften_ds,
+    &button_schlitten, &button_motor_oben, &button_motor_unten,
     // PAGE 2 LEFT:
-    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2, &button_slider_2_left, &button_slider_2_right,
+    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2,
+    &button_slider_2_left, &button_slider_2_right,
     // PAGE 2 RIGHT:
     &button_reset_shorttime_counter,
     // END OF LISTEN LIST:
@@ -171,8 +173,7 @@ std::vector<Cycle_step *> cycle_steps;
 
 // NON NEXTION FUNCTIONS
 //*****************************************************************************
-void resetCylinderStates()
-{
+void resetCylinderStates() {
   zylinder_schlitten.set(0);
   motor_band_oben.set(0);
   motor_band_unten.set(0);
@@ -181,15 +182,13 @@ void resetCylinderStates()
   zylinder_entlueften.set(0);
 }
 
-void stopTestRig()
-{
+void stopTestRig() {
   resetCylinderStates();
   state_controller.set_step_mode();
   state_controller.set_machine_stop();
 }
 
-void resetTestRig()
-{
+void resetTestRig() {
   state_controller.set_machine_stop();
   resetCylinderStates();
   clearTextField("t4");
@@ -197,35 +196,27 @@ void resetTestRig()
   state_controller.set_current_step_to(0);
 }
 
-void motor_brake_enable()
-{
+void motor_brake_enable() {
   motor_bremse_oben.set(1);
   motor_bremse_unten.set(1);
   brake_timeout.resetTime();
 }
 
-void motor_brake_release()
-{
+void motor_brake_release() {
   motor_bremse_oben.set(0);
   motor_bremse_oben.set(0);
 }
 
-void motor_brake_toggle()
-{
-  if (motor_bremse_oben.get_state())
-  {
+void motor_brake_toggle() {
+  if (motor_bremse_oben.get_state()) {
     motor_brake_enable();
-  }
-  else
-  {
+  } else {
     motor_brake_release();
   }
 }
 
-void monitor_motor_brake()
-{
-  if (brake_timeout.timedOut())
-  {
+void monitor_motor_brake() {
+  if (brake_timeout.timedOut()) {
     motor_bremse_oben.set(0);
     motor_bremse_unten.set(0);
   }
@@ -234,15 +225,13 @@ void monitor_motor_brake()
 // NEXTION GENERAL DISPLAY FUNCTIONS
 //*****************************************************************************
 
-void send_to_nextion()
-{
+void send_to_nextion() {
   Serial2.write(0xff);
   Serial2.write(0xff);
   Serial2.write(0xff);
 }
 
-void updateDisplayCounter()
-{
+void updateDisplayCounter() {
   long newValue = eeprom_counter.getValue(longtime_counter);
   Serial2.print("t0.txt=");
   Serial2.print("\"");
@@ -251,26 +240,21 @@ void updateDisplayCounter()
   send_to_nextion();
 }
 
-void showInfoField()
-{
-  if (current_page == 1)
-  {
+void showInfoField() {
+  if (current_page == 1) {
     Serial2.print("vis t4,1");
     send_to_nextion();
   }
 }
 
-void hideInfoField()
-{
-  if (current_page == 1)
-  {
+void hideInfoField() {
+  if (current_page == 1) {
     Serial2.print("vis t4,0");
     send_to_nextion();
   }
 }
 
-void clearTextField(String textField)
-{
+void clearTextField(String textField) {
   Serial2.print(textField);
   Serial2.print(".txt=");
   Serial2.print("\"");
@@ -279,23 +263,20 @@ void clearTextField(String textField)
   send_to_nextion();
 }
 
-void printOnValueField(int value, String valueField)
-{
+void printOnValueField(int value, String valueField) {
   Serial2.print(valueField);
   Serial2.print(".val=");
   Serial2.print(value);
   send_to_nextion();
 }
 
-void printCurrentStep()
-{
+void printCurrentStep() {
   Serial.print(state_controller.get_current_step());
   Serial.print(" ");
   // Serial.println(cycleName[state_controller.currentCycleStep()]);
 }
 
-void print_on_text_field(String text, String textField)
-{
+void print_on_text_field(String text, String textField) {
   Serial2.print(textField);
   Serial2.print(".txt=");
   Serial2.print("\"");
@@ -304,24 +285,19 @@ void print_on_text_field(String text, String textField)
   send_to_nextion();
 }
 
-void nex_switch_play_pausePushCallback(void *ptr)
-{
+void nex_switch_play_pausePushCallback(void *ptr) {
   counterResetStopwatch = millis();
   reset_stopwatch_is_active = true;
 }
 
-void nex_switch_play_pausePopCallback(void *ptr)
-{
+void nex_switch_play_pausePopCallback(void *ptr) {
 
-  if (counterReseted == false)
-  {
+  if (counterReseted == false) {
     state_controller.toggle_machine_running_state();
-  }
-  else
-  {
-    //counter has been reseted
-    //change of machine state did not happen,
-    //therefore switch the button layout back:
+  } else {
+    // counter has been reseted
+    // change of machine state did not happen,
+    // therefore switch the button layout back:
     Serial2.print("click bt0,1"); // click button
     send_to_nextion();
     counterReseted = false; // counter reset steps completed
@@ -329,50 +305,37 @@ void nex_switch_play_pausePopCallback(void *ptr)
   reset_stopwatch_is_active = false;
 }
 
-void print_cylinder_states()
-{
-  Serial.println("ZYLINDER_STATES: " +
-                 String(zylinder_entlueften.get_state()) +
-                 zylinder_messer.get_state() +
-                 zylinder_visier.get_state() +
-                 zylinder_schlitten.get_state() +
-                 motor_band_oben.get_state() +
-                 motor_band_unten.get_state() +
-                 motor_bremse_oben.get_state() +
+void print_cylinder_states() {
+  Serial.println("ZYLINDER_STATES: " + String(zylinder_entlueften.get_state()) +
+                 zylinder_messer.get_state() + zylinder_visier.get_state() +
+                 zylinder_schlitten.get_state() + motor_band_oben.get_state() +
+                 motor_band_unten.get_state() + motor_bremse_oben.get_state() +
                  motor_bremse_unten.get_state());
 }
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE
 //*************************************************
-void button_play_pause_ds_push(void *ptr)
-{
+void button_play_pause_ds_push(void *ptr) {
   state_controller.toggle_machine_running_state();
   nex_state_machine_running = !nex_state_machine_running;
 }
-void button_modeswitch_ds_push(void *ptr)
-{
-  if (state_controller.is_in_auto_mode())
-  {
+void button_modeswitch_ds_push(void *ptr) {
+  if (state_controller.is_in_auto_mode()) {
     state_controller.set_step_mode();
-  }
-  else
-  {
+  } else {
     state_controller.set_auto_mode();
   }
   nex_prev_step_mode = state_controller.is_in_step_mode();
 }
-void button_stepback_push(void *ptr)
-{
-  if (state_controller.get_current_step() > 0)
-  {
-    state_controller.set_current_step_to(state_controller.get_current_step() - 1);
+void button_stepback_push(void *ptr) {
+  if (state_controller.get_current_step() > 0) {
+    state_controller.set_current_step_to(state_controller.get_current_step() -
+                                         1);
   }
 }
-void button_next_step_push(void *ptr)
-{
+void button_next_step_push(void *ptr) {
   state_controller.switch_to_next_step();
 }
-void button_reset_cycle_push(void *ptr)
-{
+void button_reset_cycle_push(void *ptr) {
   state_controller.set_reset_mode(1);
   clearTextField("t4");
   hideInfoField();
@@ -380,142 +343,105 @@ void button_reset_cycle_push(void *ptr)
 
 // TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE
 //*************************************************
-void button_klemmen_ds_pop(void *ptr)
-{
+void button_klemmen_ds_pop(void *ptr) {
   motor_brake_toggle();
   nex_state_motorbremse = !nex_state_motorbremse;
 }
-void button_motor_oben_push(void *ptr)
-{
-  motor_band_oben.set(1);
-}
-void button_motor_oben_pop(void *ptr)
-{
-  motor_band_oben.set(0);
-}
-void button_motor_unten_push(void *ptr)
-{
-  motor_band_unten.set(1);
-}
-void button_motor_unten_pop(void *ptr)
-{
-  motor_band_unten.set(0);
-}
-void button_entlueften_ds_push(void *ptr)
-{
+void button_motor_oben_push(void *ptr) { motor_band_oben.set(1); }
+void button_motor_oben_pop(void *ptr) { motor_band_oben.set(0); }
+void button_motor_unten_push(void *ptr) { motor_band_unten.set(1); }
+void button_motor_unten_pop(void *ptr) { motor_band_unten.set(0); }
+void button_entlueften_ds_push(void *ptr) {
   zylinder_entlueften.toggle();
   nex_state_entlueftung = !nex_state_entlueftung;
 }
-void button_schneiden_push(void *ptr)
-{
+void button_schneiden_push(void *ptr) {
   zylinder_messer.set(1);
   zylinder_visier.set(0);
 }
-void button_schneiden_pop(void *ptr)
-{
+void button_schneiden_pop(void *ptr) {
   zylinder_messer.set(0);
   zylinder_visier.set(1);
 }
-void button_schlitten_push(void *ptr)
-{
-  zylinder_schlitten.set(1);
-}
-void button_schlitten_pop(void *ptr)
-{
-  zylinder_schlitten.set(0);
-}
+void button_schlitten_push(void *ptr) { zylinder_schlitten.set(1); }
+void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
 //*************************************************
-void button_slider_1_left_push(void *ptr)
-{
+void button_slider_1_left_push(void *ptr) {
   byte increment = 10;
-  if (eeprom_counter.getValue(bandvorschub_oben) <= 20)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(bandvorschub_oben) <= 10)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) - increment);
-  if (eeprom_counter.getValue(bandvorschub_oben) < 4)
-  {
+  eeprom_counter.set(bandvorschub_oben,
+                     eeprom_counter.getValue(bandvorschub_oben) - increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) < 4) {
     eeprom_counter.set(bandvorschub_oben, 4);
   }
 }
-void button_slider_1_right_push(void *ptr)
-{
+void button_slider_1_right_push(void *ptr) {
   byte increment = 10;
 
-  if (eeprom_counter.getValue(bandvorschub_oben) < 20)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) < 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(bandvorschub_oben) < 10)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) < 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_oben) + increment);
-  if (eeprom_counter.getValue(bandvorschub_oben) > 120)
-  {
+  eeprom_counter.set(bandvorschub_oben,
+                     eeprom_counter.getValue(bandvorschub_oben) + increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) > 120) {
     eeprom_counter.set(bandvorschub_oben, 120);
   }
 }
-void button_slider_2_left_push(void *ptr)
-{
+void button_slider_2_left_push(void *ptr) {
   byte increment = 10;
-  if (eeprom_counter.getValue(bandvorschub_oben) <= 20)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(bandvorschub_oben) <= 10)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) <= 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_unten) - increment);
-  if (eeprom_counter.getValue(bandvorschub_oben) < 4)
-  {
+  eeprom_counter.set(bandvorschub_oben,
+                     eeprom_counter.getValue(bandvorschub_unten) - increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) < 4) {
     eeprom_counter.set(bandvorschub_oben, 4);
   }
 }
-void button_slider_2_right_push(void *ptr)
-{
+void button_slider_2_right_push(void *ptr) {
   byte increment = 10;
 
-  if (eeprom_counter.getValue(bandvorschub_oben) < 20)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) < 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(bandvorschub_oben) < 10)
-  {
+  if (eeprom_counter.getValue(bandvorschub_oben) < 10) {
     increment = 1;
   }
-  eeprom_counter.set(bandvorschub_oben, eeprom_counter.getValue(bandvorschub_unten) + increment);
-  if (eeprom_counter.getValue(bandvorschub_oben) > 120)
-  {
+  eeprom_counter.set(bandvorschub_oben,
+                     eeprom_counter.getValue(bandvorschub_unten) + increment);
+  if (eeprom_counter.getValue(bandvorschub_oben) > 120) {
     eeprom_counter.set(bandvorschub_oben, 120);
   }
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
 //*************************************************
-void button_reset_shorttime_counter_push(void *ptr)
-{
+void button_reset_shorttime_counter_push(void *ptr) {
   eeprom_counter.set(shorttime_counter, 0);
 
   // RESET LONGTIME COUNTER IF RESET BUTTON IS PRESSED LONG ENOUGH:
   counter_reset_stopwatch = millis();
   reset_stopwatch_is_active = true;
 }
-void button_reset_shorttime_counter_pop(void *ptr)
-{
+void button_reset_shorttime_counter_pop(void *ptr) {
   reset_stopwatch_is_active = false;
 }
 
 //*****************************************************************************
-void setupEventCallbackFunctions()
-{
+void setupEventCallbackFunctions() {
   // PAGE 0 PUSH ONLY:
   nex_page_0.attachPush(page_0_push);
   // PAGE 1 PUSH ONLY:
@@ -545,82 +471,71 @@ void setupEventCallbackFunctions()
   button_slider_2_left.attachPush(button_slider_2_left_push);
   button_slider_2_right.attachPush(button_slider_2_right_push);
   // PAGE 2 PUSH AND POP:
-  button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
+  button_reset_shorttime_counter.attachPush(
+      button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
 
 // FUNCTIONS TO UPDATE DISPLAY SCREEN:
 //*****************************************************************************
-void display_loop_page_1_left_side()
-{
+void display_loop_page_1_left_side() {
 
   update_cycle_name();
 
   // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
-  if (nex_state_machine_running != state_controller.machine_is_running())
-  {
+  if (nex_state_machine_running != state_controller.machine_is_running()) {
     Serial2.print("click bt0,1");
     send_to_nextion();
     nex_state_machine_running = state_controller.machine_is_running();
   }
 
   // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
-  if (nex_prev_step_mode != state_controller.is_in_step_mode())
-  {
+  if (nex_prev_step_mode != state_controller.is_in_step_mode()) {
     Serial2.print("click bt1,1");
     send_to_nextion();
     nex_prev_step_mode = state_controller.is_in_step_mode();
   }
 }
 
-void update_cycle_name()
-{
-  if (nex_prev_cycle_step != state_controller.get_current_step())
-  {
+void update_cycle_name() {
+  if (nex_prev_cycle_step != state_controller.get_current_step()) {
     String number = String(state_controller.get_current_step() + 1);
     String name = get_display_string();
     Serial.println(number + " " + name);
     print_on_text_field(number + " " + name, "t0");
-    //(state_controller.currentCycleStep() + 1) + (" " + cycleName[state_controller.currentCycleStep()]), "t0");
+    //(state_controller.currentCycleStep() + 1) + (" " +
+    // cycleName[state_controller.currentCycleStep()]), "t0");
     nex_prev_cycle_step = state_controller.get_current_step();
   }
 }
 
-String get_display_string()
-{
+String get_display_string() {
   int current_step = state_controller.get_current_step();
   char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
   return display_text_cycle_name;
 }
 
-void display_loop_page_1_right_side()
-{
+void display_loop_page_1_right_side() {
 
   // UPDATE SWITCHBUTTON (dual state):
-  if (zylinder_entlueften.get_state() != nex_state_entlueftung)
-  {
+  if (zylinder_entlueften.get_state() != nex_state_entlueftung) {
     Serial2.print("click bt3,1");
     send_to_nextion();
     nex_state_entlueftung = !nex_state_entlueftung;
   }
 
   // UPDATE SWITCHBUTTON (dual state):
-  if (motor_bremse_oben.get_state() != nex_state_motorbremse)
-  {
+  if (motor_bremse_oben.get_state() != nex_state_motorbremse) {
     Serial2.print("click bt5,1");
     send_to_nextion();
     nex_state_motorbremse = !nex_state_motorbremse;
   }
 
   // UPDATE BUTTON (momentary):
-  if (zylinder_schlitten.get_state() != nex_state_schlitten)
-  {
-    if (zylinder_schlitten.get_state())
-    {
+  if (zylinder_schlitten.get_state() != nex_state_schlitten) {
+    if (zylinder_schlitten.get_state()) {
       Serial2.print("click b6,1");
-    }
-    else
-    {
+    } else {
       Serial2.print("click b6,0");
     }
     send_to_nextion();
@@ -628,14 +543,10 @@ void display_loop_page_1_right_side()
   }
 
   // UPDATE BUTTON (momentary):
-  if (motor_band_oben.get_state() != nex_motor_oben)
-  {
-    if (motor_band_oben.get_state())
-    {
+  if (motor_band_oben.get_state() != nex_motor_oben) {
+    if (motor_band_oben.get_state()) {
       Serial2.print("click b4,1");
-    }
-    else
-    {
+    } else {
       Serial2.print("click b4,0");
     }
     send_to_nextion();
@@ -643,14 +554,10 @@ void display_loop_page_1_right_side()
   }
 
   // UPDATE BUTTON (momentary):
-  if (zylinder_messer.get_state() != nex_state_messer)
-  {
-    if (zylinder_messer.get_state())
-    {
+  if (zylinder_messer.get_state() != nex_state_messer) {
+    if (zylinder_messer.get_state()) {
       Serial2.print("click b5,1");
-    }
-    else
-    {
+    } else {
       Serial2.print("click b5,0");
     }
     send_to_nextion();
@@ -658,14 +565,10 @@ void display_loop_page_1_right_side()
   }
 
   // UPDATE BUTTON (momentary):
-  if (motor_band_unten.get_state() != nex_state_motor_unten)
-  {
-    if (motor_band_unten.get_state())
-    {
+  if (motor_band_unten.get_state() != nex_state_motor_unten) {
+    if (motor_band_unten.get_state()) {
       Serial2.print("click b3,1");
-    }
-    else
-    {
+    } else {
       Serial2.print("click b3,0");
     }
     send_to_nextion();
@@ -673,36 +576,31 @@ void display_loop_page_1_right_side()
   }
 }
 void display_loop_page_2_left_side() {}
-void display_loop_page_2_right_side()
-{
+void display_loop_page_2_right_side() {
   // UPDATE UPPER COUNTER:
-  if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter))
-  {
-    print_on_text_field(String(eeprom_counter.getValue(longtime_counter)), "t10");
-    //PrintOnTextField((eepromCounter.getValue(longtime_counter) + ("")), "t10");
+  if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter)) {
+    print_on_text_field(String(eeprom_counter.getValue(longtime_counter)),
+                        "t10");
+    // PrintOnTextField((eepromCounter.getValue(longtime_counter) + ("")),
+    // "t10");
     nex_prev_longtime_counter = eeprom_counter.getValue(longtime_counter);
   }
   // UPDATE LOWER COUNTER:
-  if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttime_counter))
-  {
-    print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)), "t12");
+  if (nex_prev_shorttime_counter !=
+      eeprom_counter.getValue(shorttime_counter)) {
+    print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)),
+                        "t12");
     nex_prev_shorttime_counter = eeprom_counter.getValue(shorttime_counter);
   }
-  if (reset_stopwatch_is_active)
-  {
-    if (millis() - counter_reset_stopwatch > 5000)
-    {
+  if (reset_stopwatch_is_active) {
+    if (millis() - counter_reset_stopwatch > 5000) {
       eeprom_counter.set(longtime_counter, 0);
     }
   }
 }
 
-void page_0_push(void *ptr)
-{
-  current_page = 0;
-}
-void page_1_push(void *ptr)
-{
+void page_0_push(void *ptr) { current_page = 0; }
+void page_1_push(void *ptr) {
   current_page = 1;
   hideInfoField();
 
@@ -717,8 +615,7 @@ void page_1_push(void *ptr)
   nex_state_motor_unten = 0;
   nex_state_machine_running = 0;
 }
-void page_2_push(void *ptr)
-{
+void page_2_push(void *ptr) {
   current_page = 2;
   // REFRESH BUTTON STATES:
   nex_prev_bandvorschub_oben = 0;
@@ -727,8 +624,7 @@ void page_2_push(void *ptr)
 }
 
 //*****************************************************************************
-void nextionSetup()
-{
+void nextionSetup() {
   //*****************************************************************************
   Serial2.begin(9600);
 
@@ -744,19 +640,16 @@ void nextionSetup()
   send_to_nextion();
 }
 //*****************************************************************************
-void nextion_display_loop()
-{
+void nextion_display_loop() {
   //*****************************************************************************
   nexLoop(nex_listen_list); // check for any touch event
 
-  if (current_page == 1)
-  {
+  if (current_page == 1) {
     display_loop_page_1_left_side();
     display_loop_page_1_right_side();
   }
 
-  if (current_page == 2)
-  {
+  if (current_page == 2) {
     display_loop_page_2_left_side();
     display_loop_page_2_right_side();
   }
@@ -775,17 +668,14 @@ void nextion_display_loop()
 // move sledge back
 
 //------------------------------------------------------------------------------
-class Feed_upper_strap : public Cycle_step
-{
+class Feed_upper_strap : public Cycle_step {
 public:
-  char *get_display_text()
-  {
+  char *get_display_text() {
     char *display_text = (char *)malloc(20);
     strcpy(display_text, "BAND OBEN");
     return display_text;
   }
-  void do_stuff()
-  {
+  void do_stuff() {
     zylinder_entlueften.set(1);
     zylinder_messer.set(1);
     zylinder_visier.set(1);
@@ -793,44 +683,36 @@ public:
     motor_band_oben.set(1);
     motor_band_unten.set(1);
     motor_brake_enable();
-    if (test_switch.switchedLow())
-    {
+    if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
     }
   }
 };
 //------------------------------------------------------------------------------
-class Feed_lower_strap : public Cycle_step
-{
+class Feed_lower_strap : public Cycle_step {
 public:
-  char *get_display_text()
-  {
+  char *get_display_text() {
     char *display_text = (char *)malloc(20);
     strcpy(display_text, "BAND UNTEN");
     return display_text;
   }
-  void do_stuff()
-  {
-    if (test_switch.switchedLow())
-    {
+  void do_stuff() {
+    if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
     }
   }
 };
 //------------------------------------------------------------------------------
-class Brake : public Cycle_step
-{
+class Brake : public Cycle_step {
 public:
-  char *get_display_text()
-  {
+  char *get_display_text() {
     char *display_text = (char *)malloc(20);
     strcpy(display_text, "BREMSEN");
     return display_text;
   }
-  void do_stuff()
-  {
+  void do_stuff() {
     zylinder_entlueften.set(0);
     zylinder_messer.set(0);
     zylinder_visier.set(0);
@@ -838,8 +720,7 @@ public:
     motor_band_oben.set(0);
     motor_band_unten.set(0);
     motor_brake_release();
-    if (test_switch.switchedLow())
-    {
+    if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
       eeprom_counter.countOneUp(longtime_counter);
@@ -875,8 +756,7 @@ private:
 //------------------------------------------------------------------------------
 
 //*****************************************************************************
-void setup()
-{
+void setup() {
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
@@ -894,15 +774,15 @@ void setup()
   Serial.begin(115200);
   state_controller.set_auto_mode();
   state_controller.set_machine_running();
-  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // DEACTIVATE INPUT_PULLUP FOR CONTROLLINO !!!
+  pinMode(TEST_SWITCH_PIN,
+          INPUT_PULLUP); // DEACTIVATE INPUT_PULLUP FOR CONTROLLINO !!!
   display_string_cycle_name = cycle_steps[0]->get_display_text();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextionSetup();
 }
 //*****************************************************************************
-void loop()
-{
+void loop() {
 
   // UPDDATE DISPLAY:
   nextion_display_loop();
@@ -911,45 +791,41 @@ void loop()
   monitor_motor_brake();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
-  if (cycle_steps[state_controller.get_current_step()]->is_completed())
-  {
+  if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
     int current_step = state_controller.get_current_step();
     state_controller.switch_to_next_step();
 
-    char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
+    char *display_text_cycle_name =
+        cycle_steps[current_step]->get_display_text();
     display_string_cycle_name = display_text_cycle_name;
-    //std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
-    //std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
+    // std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
+    // std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
   }
 
   // RESET RIG IF RESET IS ACTIVATED:
-  if (state_controller.reset_mode_is_active())
-  {
+  if (state_controller.reset_mode_is_active()) {
     //   reset_test_rig();
   }
 
   // IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
-  if (state_controller.step_switch_has_happend())
-  {
-    if (state_controller.is_in_step_mode())
-    {
+  if (state_controller.step_switch_has_happend()) {
+    if (state_controller.is_in_step_mode()) {
       state_controller.set_machine_running(false);
     }
   }
 
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
-  if (state_controller.machine_is_running())
-  {
-    //std::cout << "THIS IS WHAT IT DOES: ";
+  if (state_controller.machine_is_running()) {
+    // std::cout << "THIS IS WHAT IT DOES: ";
     cycle_steps[state_controller.get_current_step()]->do_stuff();
-    //std::cout << "---------------\n\n";
+    // std::cout << "---------------\n\n";
   }
-  //int current_step_no=state_controller.get_current_step();
-  //...WESHALB GEHT DAS NICHT?: Cycle_step current_cycle_step=cycle_steps[current_step_no];
+  // int current_step_no=state_controller.get_current_step();
+  //...WESHALB GEHT DAS NICHT?: Cycle_step
+  // current_cycle_step=cycle_steps[current_step_no];
 
   // DISPLAY DEBUG INFOMATION:
-  if (print_interval_timeout.timedOut())
-  {
+  if (print_interval_timeout.timedOut()) {
     print_cylinder_states();
     print_interval_timeout.resetTime();
   }
