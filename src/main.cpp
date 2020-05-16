@@ -9,8 +9,10 @@
  * ****************************************************************************
  * TODO:
  * 
+ * UPDATE TRAFFIC LIGHT ONLY WHEN STATE CHANGED
  * Implement user info "WARTEN" in red and "CRIMPEN" in green
- * eeprom counter is not a counter but a rememberer!
+ * Refactor star- an dashlines, update code guidelines
+  * eeprom counter is not a counter but a rememberer!
  * Find unused variables ...how?
  * Clean up code
  * Split insomnia in two libraries (delay and timeout)
@@ -52,6 +54,9 @@ void display_loop_page_1_left_side();
 void display_loop_page_1_right_side();
 void display_loop_page_2_left_side();
 void display_loop_page_2_right_side();
+void update_traffic_light_field();
+void set_traffic_light_field_text(String text);
+void set_traffic_light_field_color(String color);
 void update_cycle_name();
 void update_upper_slider_value();
 void update_lower_slider_value();
@@ -193,10 +198,11 @@ void reset_machine() {
   state_controller.set_current_step_to(0);
 }
 
-void motor_brake_enable() {
+void motor_brake_enable_and_set_awake() {
   motor_bremse_oben.set(1);
   motor_bremse_unten.set(1);
   brake_timeout.reset_time();
+  state_controller.set_machine_awake();
 }
 
 void motor_brake_disable() {
@@ -206,16 +212,17 @@ void motor_brake_disable() {
 
 void motor_brake_toggle() {
   if (motor_bremse_oben.get_state()) {
-    motor_brake_enable();
+    motor_brake_enable_and_set_awake();
   } else {
     motor_brake_disable();
   }
 }
 
-void monitor_motor_brake() {
+void monitor_motor_brake_and_set_sleep() {
   if (brake_timeout.has_timed_out()) {
     motor_bremse_oben.set(0);
     motor_bremse_unten.set(0);
+    state_controller.set_machine_asleep();
   }
 }
 
@@ -281,14 +288,6 @@ void display_text_in_field(String text, String textField) {
   send_to_nextion();
 }
 
-void nex_switch_play_pausePushCallback(void *ptr) {
-  state_controller.toggle_machine_running_state();
-}
-
-void nex_switch_play_pausePopCallback(void *ptr) {
-  state_controller.toggle_machine_running_state();
-}
-
 void print_cylinder_states() {
   Serial.println("ZYLINDER_STATES: " + String(zylinder_entlueften.get_state()) +
                  zylinder_messer.get_state() + zylinder_visier.get_state() +
@@ -297,13 +296,14 @@ void print_cylinder_states() {
                  motor_bremse_unten.get_state());
 }
 
-// NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
+// NEXTION TOUCH EVENT FUNCTIONS *******************************************
 
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE:
 void button_play_pause_ds_push(void *ptr) {
   state_controller.toggle_machine_running_state();
   nex_state_machine_running = !nex_state_machine_running;
 }
+
 void button_modeswitch_ds_push(void *ptr) {
   if (state_controller.is_in_auto_mode()) {
     state_controller.set_step_mode();
@@ -487,14 +487,7 @@ void nextion_display_loop() {
 void display_loop_page_1_left_side() {
 
   update_cycle_name();
-  set_play_pause_button_pause();
-
-  // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
-  if (nex_state_machine_running != state_controller.machine_is_running()) {
-    Serial2.print("click bt0,1");
-    send_to_nextion();
-    nex_state_machine_running = state_controller.machine_is_running();
-  }
+  update_traffic_light_field();
 
   // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
   if (nex_state_step_mode != state_controller.is_in_step_mode()) {
@@ -503,6 +496,7 @@ void display_loop_page_1_left_side() {
     nex_state_step_mode = state_controller.is_in_step_mode();
   }
 }
+
 void update_cycle_name() {
   if (nex_prev_cycle_step != state_controller.get_current_step()) {
     String number = String(state_controller.get_current_step() + 1);
@@ -515,10 +509,26 @@ void update_cycle_name() {
   }
 }
 
-void set_play_pause_button_pause() {
-  String info = "WAARTEN";
-  display_text_in_field(info, "bt0");
-  Serial2.print("bt0.bco2=1024"); //blue=500 // red = 1024 //green 19526
+void update_traffic_light_field() {
+  String green = "2016";
+  String blue = "500";
+  String red = "63488";
+
+  if (state_controller.is_asleep) {
+    set_traffic_light_field_text("SLEEP");
+    set_traffic_light_field_color(blue);
+  } else {
+    set_traffic_light_field_text("CRIMP");
+    set_traffic_light_field_color(green);
+  }
+}
+
+void set_traffic_light_field_text(String text) { display_text_in_field(text, "bt0"); }
+
+void set_traffic_light_field_color(String color) {
+  Serial2.print("bt0.bco2=" + color);
+  send_to_nextion();
+  Serial2.print("bt0.bco=" + color);
   send_to_nextion();
 }
 
@@ -529,7 +539,6 @@ String get_display_string() {
 }
 //------------------------------------------------------------------------------
 void display_loop_page_1_right_side() {
-
   // UPDATE SWITCHBUTTON (dual state):
   if (zylinder_entlueften.get_state() != nex_state_entlueftung) {
     Serial2.print("click bt3,1");
@@ -590,12 +599,10 @@ void display_loop_page_1_right_side() {
 }
 // DIPLAY LOOP FUNCTIONS PAGE 2: -----------------------------------------------
 void display_loop_page_2_left_side() {
-
   update_upper_slider_value();
   update_lower_slider_value();
 }
 void update_upper_slider_value() {
-
   if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
     display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"), "t4");
     nex_upper_strap_feed = eeprom_counter.get_value(upper_strap_feed);
@@ -608,7 +615,6 @@ void update_lower_slider_value() {
   }
 }
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix) {
-
   String value = String(eeprom_counter.get_value(eeprom_value_number));
   String space = " ";
   String suffixed_string = value + space + suffix;
@@ -668,7 +674,7 @@ public:
     zylinder_schlitten.set(1);
     motor_band_oben.set(1);
     motor_band_unten.set(1);
-    motor_brake_enable();
+    motor_brake_enable_and_set_awake();
     if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
@@ -772,7 +778,7 @@ void loop() {
   nextion_display_loop();
 
   // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
-  monitor_motor_brake();
+  monitor_motor_brake_and_set_sleep();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
