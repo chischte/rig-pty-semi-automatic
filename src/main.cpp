@@ -115,7 +115,7 @@ NexPage nex_page_1 = NexPage(1, 0, "page1");
 NexButton button_previous_step = NexButton(1, 6, "b1");
 NexButton button_next_step = NexButton(1, 7, "b2");
 NexButton button_reset_cycle = NexButton(1, 5, "b0");
-NexDSButton button_play_pause_ds = NexDSButton(1, 3, "bt0");
+NexButton button_traffic_light = NexButton(1, 15, "b8");
 NexDSButton button_modeswitch_ds = NexDSButton(1, 4, "bt1");
 // PAGE 1 - RIGHT SIDE
 NexDSButton button_entlueften_ds = NexDSButton(1, 13, "bt3");
@@ -140,7 +140,7 @@ NexTouch *nex_listen_list[] = { //
     &nex_page_0,
     // PAGE 1 LEFT:
     &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle,
-    &button_play_pause_ds, &button_modeswitch_ds,
+    &button_traffic_light, &button_modeswitch_ds,
     // PAGE 1 RIGHT:
     &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
     &button_motor_oben, &button_motor_unten,
@@ -431,7 +431,7 @@ void setup_display_event_callback_functions() {
   button_previous_step.attachPush(button_stepback_push);
   button_next_step.attachPush(button_next_step_push);
   button_modeswitch_ds.attachPush(button_modeswitch_ds_push);
-  button_play_pause_ds.attachPush(button_play_pause_ds_push);
+  button_traffic_light.attachPush(button_play_pause_ds_push);
   button_klemmen_ds.attachPush(button_klemmen_ds_pop);
   button_entlueften_ds.attachPush(button_entlueften_ds_push);
   // PAGE 1 PUSH AND POP:
@@ -526,12 +526,10 @@ void update_traffic_light_field() {
   }
 }
 
-void set_traffic_light_field_text(String text) { display_text_in_field(text, "bt0"); }
+void set_traffic_light_field_text(String text) { display_text_in_field(text, "b8"); }
 
 void set_traffic_light_field_color(String color) {
-  Serial2.print("bt0.bco2=" + color);
-  send_to_nextion();
-  Serial2.print("bt0.bco=" + color);
+  Serial2.print("b8.bco=" + color);
   send_to_nextion();
 }
 
