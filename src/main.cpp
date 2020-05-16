@@ -460,7 +460,7 @@ void update_cycle_name() {
 void set_play_pause_button_pause() {
   String info = "WAARTEN";
   display_text_in_field(info, "bt0");
-  Serial2.print("bt0.bco2=500");
+  Serial2.print("bt0.bco2=1024"); //blue=500 // red = 1024 //green 19526
   send_to_nextion();
 }
 
