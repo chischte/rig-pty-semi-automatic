@@ -55,9 +55,11 @@ void update_lower_slider_value();
 void update_upper_counter_value();
 void update_lower_counter_value();
 void reset_lower_counter_value();
-String get_display_string();
 void increase_slider_value(int eeprom_value_number);
 void decrease_slider_value(int eeprom_value_number);
+void update_field_values_page_2();
+String get_display_string();
+String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix);
 
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
@@ -353,13 +355,9 @@ void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
 //*************************************************
 void button_upper_slider_left_push(void *ptr) { decrease_slider_value(upper_strap_feed); }
-
 void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_strap_feed); }
-
 void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
-
 void button_lower_slider_right_push(void *ptr) { increase_slider_value(lower_strap_feed); }
-
 void increase_slider_value(int eeprom_value_number) {
   long max_value = 200; // [mm]
   long interval = 5;
@@ -371,7 +369,6 @@ void increase_slider_value(int eeprom_value_number) {
     eeprom_counter.set_value(eeprom_value_number, max_value);
   }
 }
-
 void decrease_slider_value(int eeprom_value_number) {
   long min_value = 0; // [mm]
   long interval = 5;
@@ -538,34 +535,39 @@ void display_loop_page_2_left_side() {
   update_upper_slider_value();
   update_lower_slider_value();
 }
-
 void update_upper_slider_value() {
+
   if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
-    print_on_text_field(String(eeprom_counter.get_value(upper_strap_feed)), "t4");
+    print_on_text_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"), "t4");
     nex_upper_strap_feed = eeprom_counter.get_value(upper_strap_feed);
   }
 }
-
 void update_lower_slider_value() {
   if (eeprom_counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
-    print_on_text_field(String(eeprom_counter.get_value(lower_strap_feed)), "t2");
+    print_on_text_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"), "t2");
     nex_lower_strap_feed = eeprom_counter.get_value(lower_strap_feed);
   }
 }
+String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix) {
+
+  String value = String(eeprom_counter.get_value(eeprom_value_number));
+  String space = " ";
+  String suffixed_string = value + space + suffix;
+  return suffixed_string;
+}
+
 //------------------------------------------------------------------------------
 void display_loop_page_2_right_side() {
   update_upper_counter_value();
   update_lower_counter_value();
   reset_lower_counter_value();
 }
-
 void update_upper_counter_value() {
   if (nex_prev_longtime_counter != eeprom_counter.get_value(longtime_counter)) {
     print_on_text_field(String(eeprom_counter.get_value(longtime_counter)), "t10");
     nex_prev_longtime_counter = eeprom_counter.get_value(longtime_counter);
   }
 }
-
 void update_lower_counter_value() {
   // UPDATE LOWER COUNTER:
   if (nex_prev_shorttime_counter != eeprom_counter.get_value(shorttime_counter)) {
@@ -573,7 +575,6 @@ void update_lower_counter_value() {
     nex_prev_shorttime_counter = eeprom_counter.get_value(shorttime_counter);
   }
 }
-
 void reset_lower_counter_value() {
   if (nex_reset_button_timeout.is_marked_activated()) {
     Serial.println("HAUDI");
@@ -603,11 +604,14 @@ void page_1_push(void *ptr) {
 }
 void page_2_push(void *ptr) {
   current_page = 2;
-  // REFRESH BUTTON STATES:
-  nex_upper_strap_feed = 0;
-  nex_lower_strap_feed = 0;
-  nex_prev_shorttime_counter = 0;
-  nex_prev_longtime_counter = 0;
+  update_field_values_page_2();
+}
+
+void update_field_values_page_2() {
+  nex_upper_strap_feed = !eeprom_counter.get_value(nex_upper_strap_feed);
+  nex_lower_strap_feed = !eeprom_counter.get_value(nex_lower_strap_feed);
+  nex_prev_shorttime_counter = !eeprom_counter.get_value(nex_upper_strap_feed);
+  nex_prev_longtime_counter = !eeprom_counter.get_value(nex_upper_strap_feed);
 }
 
 //*****************************************************************************
