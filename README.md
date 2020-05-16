@@ -1,11 +1,15 @@
 rig-template-experiment
+
 ARCHITECTURE:
+
 <img
 src="pics/architecture.jpg"
 border="1"
 raw=true
 />
+
 TRAFFIC LIGHT STATES OF THE DISPLAY:
+
 <img
 src="pics/traffic_light_states.jpg"
 border="1"
