@@ -198,11 +198,11 @@ void reset_machine() {
   state_controller.set_current_step_to(0);
 }
 
-void motor_brake_enable_and_set_awake() {
+void motor_brake_enable() {
   motor_bremse_oben.set(1);
   motor_bremse_unten.set(1);
   brake_timeout.reset_time();
-  state_controller.set_machine_awake();
+  //state_controller.set_machine_awake();
 }
 
 void motor_brake_disable() {
@@ -212,17 +212,16 @@ void motor_brake_disable() {
 
 void motor_brake_toggle() {
   if (motor_bremse_oben.get_state()) {
-    motor_brake_enable_and_set_awake();
-  } else {
     motor_brake_disable();
+  } else {
+    motor_brake_enable();
   }
 }
 
 void monitor_motor_brake_and_set_sleep() {
   if (brake_timeout.has_timed_out()) {
-    motor_bremse_oben.set(0);
-    motor_bremse_unten.set(0);
-    state_controller.set_machine_asleep();
+    motor_brake_disable();
+    //state_controller.set_machine_asleep();
   }
 }
 
@@ -487,7 +486,7 @@ void nextion_display_loop() {
 void display_loop_page_1_left_side() {
 
   update_cycle_name();
-  update_traffic_light_field();
+  //update_traffic_light_field();
 
   // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
   if (nex_state_step_mode != state_controller.is_in_step_mode()) {
@@ -514,7 +513,7 @@ void update_traffic_light_field() {
   String blue = "500";
   String red = "63488";
 
-  if (state_controller.is_asleep) {
+  if (state_controller.is_asleep()) {
     set_traffic_light_field_text("SLEEP");
     set_traffic_light_field_color(blue);
   } else {
@@ -674,7 +673,7 @@ public:
     zylinder_schlitten.set(1);
     motor_band_oben.set(1);
     motor_band_unten.set(1);
-    motor_brake_enable_and_set_awake();
+    motor_brake_enable();
     if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
