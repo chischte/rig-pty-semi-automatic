@@ -9,10 +9,9 @@
  * ****************************************************************************
  * TODO:
  * 
- * Remove variable slider increment for sliders on page 2
- * eeprom counter is not a counter but a rememberer!
- * Implement user info "WARTEN" in red and "CRIMPEN" in green
  * Make slider values displayed with mm
+ * Implement user info "WARTEN" in red and "CRIMPEN" in green
+ * eeprom counter is not a counter but a rememberer!
  * Find unused variables ...how?
  * Clean up code
  * Split insomnia in two libraries (delay and timeout)
@@ -57,6 +56,8 @@ void update_upper_counter_value();
 void update_lower_counter_value();
 void reset_lower_counter_value();
 String get_display_string();
+void increase_slider_value(int eeprom_value_number);
+void decrease_slider_value(int eeprom_value_number);
 
 // DEFINE NAMES CYCLE COUNTER:
 //*****************************************************************************
@@ -351,75 +352,42 @@ void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
 //*************************************************
-void button_upper_slider_left_push(void *ptr) {
-  byte increment = 5; //[mm]
-  // if (eeprpm)
+void button_upper_slider_left_push(void *ptr) { decrease_slider_value(upper_strap_feed); }
 
-  eeprom_counter.set(upper_strap_feed, eeprom_counter.get_value(upper_strap_feed) - increment);
-  if (eeprom_counter.get_value(upper_strap_feed) < 4) {
-    eeprom_counter.set(upper_strap_feed, 4);
-  }
-}
+void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_strap_feed); }
 
-void increase_slider_value(int eeprom_value) {
+void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
+
+void button_lower_slider_right_push(void *ptr) { increase_slider_value(lower_strap_feed); }
+
+void increase_slider_value(int eeprom_value_number) {
   long max_value = 200; // [mm]
   long interval = 5;
-  //eeprom_counter.set
+  long current_value = eeprom_counter.get_value(eeprom_value_number);
 
-  int min_value;
-}
-void decrease_slider_value(int eeprom_value) {
-  byte increment;
-  byte min;
-}
-
-void button_upper_slider_right_push(void *ptr) {
-  byte increment = 10;
-
-  if (eeprom_counter.get_value(upper_strap_feed) < 20) {
-    increment = 5;
-  }
-  if (eeprom_counter.get_value(upper_strap_feed) < 10) {
-    increment = 1;
-  }
-  eeprom_counter.set(upper_strap_feed, eeprom_counter.get_value(upper_strap_feed) + increment);
-  if (eeprom_counter.get_value(upper_strap_feed) > 120) {
-    eeprom_counter.set(upper_strap_feed, 120);
+  if (current_value <= (max_value - interval)) {
+    eeprom_counter.set_value(eeprom_value_number, (current_value + interval));
+  } else {
+    eeprom_counter.set_value(eeprom_value_number, max_value);
   }
 }
 
-void button_lower_slider_left_push(void *ptr) {
-  byte increment = 10;
-  if (eeprom_counter.get_value(lower_strap_feed) <= 20) {
-    increment = 5;
-  }
-  if (eeprom_counter.get_value(lower_strap_feed) <= 10) {
-    increment = 1;
-  }
-  eeprom_counter.set(lower_strap_feed, eeprom_counter.get_value(lower_strap_feed) - increment);
-  if (eeprom_counter.get_value(lower_strap_feed) < 4) {
-    eeprom_counter.set(lower_strap_feed, 4);
-  }
-}
-void button_lower_slider_right_push(void *ptr) {
-  byte increment = 10;
+void decrease_slider_value(int eeprom_value_number) {
+  long min_value = 0; // [mm]
+  long interval = 5;
+  long current_value = eeprom_counter.get_value(eeprom_value_number);
 
-  if (eeprom_counter.get_value(lower_strap_feed) < 20) {
-    increment = 5;
-  }
-  if (eeprom_counter.get_value(lower_strap_feed) < 10) {
-    increment = 1;
-  }
-  eeprom_counter.set(lower_strap_feed, eeprom_counter.get_value(lower_strap_feed) + increment);
-  if (eeprom_counter.get_value(lower_strap_feed) > 120) {
-    eeprom_counter.set(lower_strap_feed, 120);
+  if (current_value >= (min_value + interval)) {
+    eeprom_counter.set_value(eeprom_value_number, (current_value - interval));
+  } else {
+    eeprom_counter.set_value(eeprom_value_number, min_value);
   }
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
 //*************************************************
 void button_reset_shorttime_counter_push(void *ptr) {
-  eeprom_counter.set(shorttime_counter, 0);
+  eeprom_counter.set_value(shorttime_counter, 0);
 
   // ACTIVATE TIMEOUT TO RESET LONGTIME COUNTER:
   nex_reset_button_timeout.reset_time();
@@ -611,7 +579,7 @@ void reset_lower_counter_value() {
     Serial.println("HAUDI");
     if (nex_reset_button_timeout.has_timed_out()) {
       Serial.println("GAUDI");
-      eeprom_counter.set(longtime_counter, 0);
+      eeprom_counter.set_value(longtime_counter, 0);
     }
   }
 }
