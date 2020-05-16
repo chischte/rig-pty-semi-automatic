@@ -303,6 +303,9 @@ void print_cylinder_states() {
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE:
 void button_play_pause_ds_push(void *ptr) {
   state_controller.toggle_machine_running_state();
+  if (!state_controller.machine_is_running()) {
+    traffic_light.set_info_start();
+  }
   nex_state_machine_running = !nex_state_machine_running;
 }
 
