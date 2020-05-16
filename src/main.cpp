@@ -10,6 +10,7 @@
  * TODO:
  * 
  * Remove variable slider increment for sliders on page 2
+ * eeprom counter is not a counter but a rememberer!
  * Implement user info "WARTEN" in red and "CRIMPEN" in green
  * Make slider values displayed with mm
  * Find unused variables ...how?
@@ -229,7 +230,7 @@ void send_to_nextion() {
 }
 
 void update_display_counter() {
-  long new_value = eeprom_counter.getValue(longtime_counter);
+  long new_value = eeprom_counter.get_value(longtime_counter);
   Serial2.print("t0.txt=");
   Serial2.print("\"");
   Serial2.print(new_value);
@@ -351,57 +352,66 @@ void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
 //*************************************************
 void button_upper_slider_left_push(void *ptr) {
-  byte increment = 10;
-  if (eeprom_counter.getValue(upper_strap_feed) <= 20) {
-    increment = 5;
-  }
-  if (eeprom_counter.getValue(upper_strap_feed) <= 10) {
-    increment = 1;
-  }
-  eeprom_counter.set(upper_strap_feed, eeprom_counter.getValue(upper_strap_feed) - increment);
-  if (eeprom_counter.getValue(upper_strap_feed) < 4) {
+  byte increment = 5; //[mm]
+  // if (eeprpm)
+
+  eeprom_counter.set(upper_strap_feed, eeprom_counter.get_value(upper_strap_feed) - increment);
+  if (eeprom_counter.get_value(upper_strap_feed) < 4) {
     eeprom_counter.set(upper_strap_feed, 4);
   }
 }
+
+void increase_slider_value(int eeprom_value) {
+  long max_value = 200; // [mm]
+  long interval = 5;
+  //eeprom_counter.set
+
+  int min_value;
+}
+void decrease_slider_value(int eeprom_value) {
+  byte increment;
+  byte min;
+}
+
 void button_upper_slider_right_push(void *ptr) {
   byte increment = 10;
 
-  if (eeprom_counter.getValue(upper_strap_feed) < 20) {
+  if (eeprom_counter.get_value(upper_strap_feed) < 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(upper_strap_feed) < 10) {
+  if (eeprom_counter.get_value(upper_strap_feed) < 10) {
     increment = 1;
   }
-  eeprom_counter.set(upper_strap_feed, eeprom_counter.getValue(upper_strap_feed) + increment);
-  if (eeprom_counter.getValue(upper_strap_feed) > 120) {
+  eeprom_counter.set(upper_strap_feed, eeprom_counter.get_value(upper_strap_feed) + increment);
+  if (eeprom_counter.get_value(upper_strap_feed) > 120) {
     eeprom_counter.set(upper_strap_feed, 120);
   }
 }
 
 void button_lower_slider_left_push(void *ptr) {
   byte increment = 10;
-  if (eeprom_counter.getValue(lower_strap_feed) <= 20) {
+  if (eeprom_counter.get_value(lower_strap_feed) <= 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(lower_strap_feed) <= 10) {
+  if (eeprom_counter.get_value(lower_strap_feed) <= 10) {
     increment = 1;
   }
-  eeprom_counter.set(lower_strap_feed, eeprom_counter.getValue(lower_strap_feed) - increment);
-  if (eeprom_counter.getValue(lower_strap_feed) < 4) {
+  eeprom_counter.set(lower_strap_feed, eeprom_counter.get_value(lower_strap_feed) - increment);
+  if (eeprom_counter.get_value(lower_strap_feed) < 4) {
     eeprom_counter.set(lower_strap_feed, 4);
   }
 }
 void button_lower_slider_right_push(void *ptr) {
   byte increment = 10;
 
-  if (eeprom_counter.getValue(lower_strap_feed) < 20) {
+  if (eeprom_counter.get_value(lower_strap_feed) < 20) {
     increment = 5;
   }
-  if (eeprom_counter.getValue(lower_strap_feed) < 10) {
+  if (eeprom_counter.get_value(lower_strap_feed) < 10) {
     increment = 1;
   }
-  eeprom_counter.set(lower_strap_feed, eeprom_counter.getValue(lower_strap_feed) + increment);
-  if (eeprom_counter.getValue(lower_strap_feed) > 120) {
+  eeprom_counter.set(lower_strap_feed, eeprom_counter.get_value(lower_strap_feed) + increment);
+  if (eeprom_counter.get_value(lower_strap_feed) > 120) {
     eeprom_counter.set(lower_strap_feed, 120);
   }
 }
@@ -562,16 +572,16 @@ void display_loop_page_2_left_side() {
 }
 
 void update_upper_slider_value() {
-  if (eeprom_counter.getValue(upper_strap_feed) != nex_upper_strap_feed) {
-    print_on_text_field(String(eeprom_counter.getValue(upper_strap_feed)), "t4");
-    nex_upper_strap_feed = eeprom_counter.getValue(upper_strap_feed);
+  if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
+    print_on_text_field(String(eeprom_counter.get_value(upper_strap_feed)), "t4");
+    nex_upper_strap_feed = eeprom_counter.get_value(upper_strap_feed);
   }
 }
 
 void update_lower_slider_value() {
-  if (eeprom_counter.getValue(lower_strap_feed) != nex_lower_strap_feed) {
-    print_on_text_field(String(eeprom_counter.getValue(lower_strap_feed)), "t2");
-    nex_lower_strap_feed = eeprom_counter.getValue(lower_strap_feed);
+  if (eeprom_counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
+    print_on_text_field(String(eeprom_counter.get_value(lower_strap_feed)), "t2");
+    nex_lower_strap_feed = eeprom_counter.get_value(lower_strap_feed);
   }
 }
 //------------------------------------------------------------------------------
@@ -582,17 +592,17 @@ void display_loop_page_2_right_side() {
 }
 
 void update_upper_counter_value() {
-  if (nex_prev_longtime_counter != eeprom_counter.getValue(longtime_counter)) {
-    print_on_text_field(String(eeprom_counter.getValue(longtime_counter)), "t10");
-    nex_prev_longtime_counter = eeprom_counter.getValue(longtime_counter);
+  if (nex_prev_longtime_counter != eeprom_counter.get_value(longtime_counter)) {
+    print_on_text_field(String(eeprom_counter.get_value(longtime_counter)), "t10");
+    nex_prev_longtime_counter = eeprom_counter.get_value(longtime_counter);
   }
 }
 
 void update_lower_counter_value() {
   // UPDATE LOWER COUNTER:
-  if (nex_prev_shorttime_counter != eeprom_counter.getValue(shorttime_counter)) {
-    print_on_text_field(String(eeprom_counter.getValue(shorttime_counter)), "t12");
-    nex_prev_shorttime_counter = eeprom_counter.getValue(shorttime_counter);
+  if (nex_prev_shorttime_counter != eeprom_counter.get_value(shorttime_counter)) {
+    print_on_text_field(String(eeprom_counter.get_value(shorttime_counter)), "t12");
+    nex_prev_shorttime_counter = eeprom_counter.get_value(shorttime_counter);
   }
 }
 
@@ -732,8 +742,8 @@ public:
     if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
-      eeprom_counter.countOneUp(longtime_counter);
-      eeprom_counter.countOneUp(shorttime_counter);
+      eeprom_counter.count_one_up(longtime_counter);
+      eeprom_counter.count_one_up(shorttime_counter);
     }
   }
 };
