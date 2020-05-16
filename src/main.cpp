@@ -9,7 +9,6 @@
  * ****************************************************************************
  * TODO:
  * 
- * Make slider values displayed with mm
  * Implement user info "WARTEN" in red and "CRIMPEN" in green
  * eeprom counter is not a counter but a rememberer!
  * Find unused variables ...how?
@@ -113,14 +112,12 @@ NexButton button_schlitten = NexButton(1, 1, "b6");
 NexButton button_motor_oben = NexButton(1, 9, "b4");
 NexButton button_schneiden = NexButton(1, 14, "b5");
 NexButton button_motor_unten = NexButton(1, 8, "b3");
-
 // PAGE 2 - LEFT SIDE:
 NexPage nex_page_2 = NexPage(2, 0, "page2");
 NexButton button_slider_1_left = NexButton(2, 5, "b1");
 NexButton button_slider_1_right = NexButton(2, 6, "b2");
 NexButton button_slider_2_left = NexButton(2, 16, "b5");
 NexButton button_slider_2_right = NexButton(2, 17, "b6");
-
 // PAGE 2 - RIGHT SIDE:
 NexButton button_reset_shorttime_counter = NexButton(2, 12, "b4");
 
@@ -154,17 +151,12 @@ bool nex_state_messer;
 bool nex_state_machine_running;
 bool nex_state_motor_unten;
 bool nex_state_step_mode = true;
-
 byte nex_prev_cycle_step;
-byte current_page = 0;
-
-long
-    nex_upper_strap_feed; //....can maybe be replaced with a function like "update strap feed display()"
+byte nex_current_page = 0;
+long nex_upper_strap_feed;
 long nex_lower_strap_feed;
 long nex_prev_shorttime_counter;
 long nex_prev_longtime_counter;
-
-String display_string_cycle_name; // ...make more elegant / ...pack it in a function?
 
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
 //*****************************************************************************
@@ -174,6 +166,7 @@ std::vector<Cycle_step *> cycle_steps;
 
 // NON NEXTION FUNCTIONS
 //*****************************************************************************
+
 void reset_cylinder_states() {
   zylinder_schlitten.set(0);
   motor_band_oben.set(0);
@@ -242,14 +235,14 @@ void update_display_counter() {
 }
 
 void show_info_field() {
-  if (current_page == 1) {
+  if (nex_current_page == 1) {
     Serial2.print("vis t4,1");
     send_to_nextion();
   }
 }
 
 void hide_info_field() {
-  if (current_page == 1) {
+  if (nex_current_page == 1) {
     Serial2.print("vis t4,0");
     send_to_nextion();
   }
@@ -586,9 +579,9 @@ void reset_lower_counter_value() {
 }
 
 //------------------------------------------------------------------------------
-void page_0_push(void *ptr) { current_page = 0; }
+void page_0_push(void *ptr) { nex_current_page = 0; }
 void page_1_push(void *ptr) {
-  current_page = 1;
+  nex_current_page = 1;
   hide_info_field();
 
   // REFRESH BUTTON STATES:
@@ -603,7 +596,7 @@ void page_1_push(void *ptr) {
   nex_state_machine_running = 0;
 }
 void page_2_push(void *ptr) {
-  current_page = 2;
+  nex_current_page = 2;
   update_field_values_page_2();
 }
 
@@ -635,12 +628,12 @@ void nextion_display_loop() {
   //*****************************************************************************
   nexLoop(nex_listen_list); // check for any touch event
 
-  if (current_page == 1) {
+  if (nex_current_page == 1) {
     display_loop_page_1_left_side();
     display_loop_page_1_right_side();
   }
 
-  if (current_page == 2) {
+  if (nex_current_page == 2) {
     display_loop_page_2_left_side();
     display_loop_page_2_right_side();
   }
@@ -766,7 +759,6 @@ void setup() {
   state_controller.set_auto_mode();
   state_controller.set_machine_running();
   pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // !!! DEACTIVATE FOR CONTROLLINO !!!
-  display_string_cycle_name = cycle_steps[0]->get_display_text();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextionSetup();
@@ -782,13 +774,7 @@ void loop() {
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
-    int current_step = state_controller.get_current_step();
     state_controller.switch_to_next_step();
-
-    char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
-    display_string_cycle_name = display_text_cycle_name;
-    // std::cout << "NEXT STEP NUMBER: " << current_step << "\n";
-    // std::cout << "NEXT STEP NAME: " << display_text_cycle_name << "\n";
   }
 
   // RESET RIG IF RESET IS ACTIVATED:
