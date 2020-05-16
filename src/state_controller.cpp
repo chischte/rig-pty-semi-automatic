@@ -1,10 +1,3 @@
-/*
- * StateController.cpp
- *
- *  Created on: Oct 20, 2019
- *      Author: realslimshady
- */
-
 #include "state_controller.h"
 
 State_controller::State_controller(int number_of_steps) { _number_of_steps = number_of_steps; }
@@ -73,7 +66,3 @@ bool State_controller::run_after_reset_is_active() {
   bool run_after_reset = _run_after_reset;
   return run_after_reset;
 }
-
-void State_controller::set_machine_asleep() { _machine_asleep = true; }
-void State_controller::set_machine_awake() { _machine_asleep = false; }
-bool State_controller::is_asleep() { return _machine_asleep; }

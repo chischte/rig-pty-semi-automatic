@@ -513,7 +513,7 @@ void update_traffic_light_field() {
   String blue = "500";
   String red = "63488";
 
-  if (state_controller.is_asleep()) {
+  if (1) {
     set_traffic_light_field_text("SLEEP");
     set_traffic_light_field_color(blue);
   } else {

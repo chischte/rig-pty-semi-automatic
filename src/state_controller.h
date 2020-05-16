@@ -1,10 +1,3 @@
-/*
- * StateController.h
- *
- *  Created on: Oct 20, 2019
- *      Author: realslimshady
- */
-
 #ifndef StateController_H_
 #define StateController_H_
 
@@ -29,10 +22,6 @@ public:
   void toggle_machine_running_state();
   bool machine_is_running();
 
-  void set_machine_asleep();
-  void set_machine_awake();
-  bool is_asleep();
-
   void switch_to_next_step();
   void set_current_step_to(int cycle_step);
   int get_current_step();
@@ -56,7 +45,6 @@ private:
   int _current_cycle_step;
   int _previous_cycle_step;
   bool _machine_running;
-  bool _machine_asleep;
   bool _step_mode;
   bool _auto_mode;
   bool _reset_mode;
