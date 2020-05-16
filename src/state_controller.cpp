@@ -5,7 +5,7 @@
  *      Author: realslimshady
  */
 
-#include "StateController.h"
+#include "state_controller.h"
 
 State_controller::State_controller(int number_of_steps) { _number_of_steps = number_of_steps; }
 State_controller::State_controller() {}

@@ -32,16 +32,16 @@
  */
 
 //#include <Controllino.h> // PIO Controllino Library, comment out when using an Arduino
-#include <AliasColino.h> //         aliases when using an Arduino instead of a Controllino
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
-#include <CycleStep.h> //           blueprint of a cycle step
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
 #include <EEPROM_Counter.h> //      https://github.com/chischte/eeprom-counter-library
 #include <Insomnia.h> //            https://github.com/chischte/insomnia-delay-library
-#include <Nextion.h> //             PIO Nextion Library
-#include <SD.h> //                  PIO Adafruit SD Library
-#include <StateController.h> //     https://github.com/chischte/state-controller-library.git
+#include <Nextion.h> //             PIO Nextion library
+#include <SD.h> //                  PIO Adafruit SD library
+#include <alias_colino.h> //        aliases when using an Arduino instead of a Controllino
+#include <cycle_step.h> //          blueprint of a cycle step
+#include <state_controller.h> //    keeps track of machine states
 
 // DECLARE FUNCTIONS FOR THE COMPILER:
 //*****************************************************************************
