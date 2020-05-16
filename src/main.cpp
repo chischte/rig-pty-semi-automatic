@@ -608,10 +608,10 @@ void page_2_push(void *ptr) {
 }
 
 void update_field_values_page_2() {
-  nex_upper_strap_feed = !eeprom_counter.get_value(nex_upper_strap_feed);
-  nex_lower_strap_feed = !eeprom_counter.get_value(nex_lower_strap_feed);
-  nex_prev_shorttime_counter = !eeprom_counter.get_value(nex_upper_strap_feed);
-  nex_prev_longtime_counter = !eeprom_counter.get_value(nex_upper_strap_feed);
+  nex_upper_strap_feed = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_lower_strap_feed = eeprom_counter.get_value(nex_lower_strap_feed) - 1;
+  nex_prev_shorttime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_prev_longtime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
 }
 
 //*****************************************************************************
