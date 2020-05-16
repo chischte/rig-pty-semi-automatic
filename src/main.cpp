@@ -41,13 +41,17 @@
 #include <SD.h> //                  PIO Adafruit SD Library
 #include <StateController.h> //     https://github.com/chischte/state-controller-library.git
 
-// DECLARE SOME OF THE FUNCTIONS:
+// DECLARE FUNCTIONS FOR THE COMPILER:
 //*****************************************************************************
 void clear_text_field(String textField);
 void hide_info_field();
 void page_0_push(void *ptr);
 void page_1_push(void *ptr);
 void page_2_push(void *ptr);
+void display_loop_page_1_left_side();
+void display_loop_page_1_right_side();
+void display_loop_page_2_left_side();
+void display_loop_page_2_right_side();
 void update_cycle_name();
 void update_upper_slider_value();
 void update_lower_slider_value();
@@ -61,8 +65,8 @@ void set_play_pause_button_pause();
 String get_display_string();
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix);
 
-// DEFINE NAMES CYCLE COUNTER:
-//*****************************************************************************
+// DEFINE NAMES CYCLE COUNTER: *************************************************
+
 enum counter {
   longtime_counter, //
   shorttime_counter, //
@@ -95,8 +99,8 @@ Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia brake_timeout(5000); // to prevent overheating
 Insomnia print_interval_timeout(500);
 
-// NEXTION DISPLAY - OBJECTS
-//*****************************************************************************
+// NEXTION DISPLAY - OBJECTS ***************************************************
+
 // PAGE 0:
 NexPage nex_page_0 = NexPage(0, 0, "page0");
 // PAGE 1 - LEFT SIDE:
@@ -122,8 +126,8 @@ NexButton button_slider_2_right = NexButton(2, 17, "b6");
 // PAGE 2 - RIGHT SIDE:
 NexButton button_reset_shorttime_counter = NexButton(2, 12, "b4");
 
-// NEXTION DISPLAY - TOUCH EVENT LIST
-//*****************************************************************************
+// NEXTION DISPLAY - TOUCH EVENT LIST ******************************************
+
 NexTouch *nex_listen_list[] = { //
     // PAGE 0:
     &nex_page_0,
@@ -141,8 +145,8 @@ NexTouch *nex_listen_list[] = { //
     // END OF LISTEN LIST:
     NULL};
 
-// VARIABLES TO MONITOR NEXTION DISPLAY STATES:
-//*****************************************************************************
+// VARIABLES TO MONITOR NEXTION DISPLAY STATES *********************************
+
 bool nex_state_play_pause_button;
 bool nex_state_entlueftung;
 bool nex_state_motorbremse;
@@ -163,10 +167,8 @@ long nex_prev_longtime_counter;
 //*****************************************************************************
 int Cycle_step::object_count = 0; // enable object counting
 std::vector<Cycle_step *> cycle_steps;
-//*****************************************************************************
 
-// NON NEXTION FUNCTIONS
-//*****************************************************************************
+// NON NEXTION FUNCTIONS: ******************************************************
 
 void reset_cylinder_states() {
   zylinder_schlitten.set(0);
@@ -217,8 +219,7 @@ void monitor_motor_brake() {
   }
 }
 
-// NEXTION GENERAL DISPLAY FUNCTIONS
-//*****************************************************************************
+// NEXTION GENERAL DISPLAY FUNCTIONS: ******************************************
 
 void send_to_nextion() {
   Serial2.write(0xff);
@@ -295,6 +296,9 @@ void print_cylinder_states() {
                  motor_band_unten.get_state() + motor_bremse_oben.get_state() +
                  motor_bremse_unten.get_state());
 }
+
+// NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
+
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE
 //*************************************************
 void button_play_pause_ds_push(void *ptr) {
@@ -388,7 +392,36 @@ void button_reset_shorttime_counter_pop(void *ptr) {
   nex_reset_button_timeout.set_flag_activated(0);
 }
 
-//*****************************************************************************
+// PAGE CHANGING EVENTS (TRIGGER UPDATE OF ALL DISPLAY ELEMENTS)
+//*************************************************
+void page_0_push(void *ptr) { nex_current_page = 0; }
+void page_1_push(void *ptr) {
+  nex_current_page = 1;
+  hide_info_field();
+
+  // REFRESH BUTTON STATES:
+  nex_prev_cycle_step = !state_controller.get_current_step();
+  nex_state_step_mode = true;
+  nex_state_entlueftung = 0;
+  nex_state_motorbremse = 0;
+  nex_state_motor_oben = 0;
+  nex_state_schlitten = 0;
+  nex_state_messer = 0;
+  nex_state_motor_unten = 0;
+  nex_state_machine_running = 0;
+}
+void page_2_push(void *ptr) {
+  nex_current_page = 2;
+  update_field_values_page_2();
+}
+void update_field_values_page_2() {
+  nex_upper_strap_feed = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_lower_strap_feed = eeprom_counter.get_value(nex_lower_strap_feed) - 1;
+  nex_prev_shorttime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_prev_longtime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+}
+
+//******************************************************************************
 void setupEventCallbackFunctions() {
   // PAGE 0 PUSH ONLY:
   nex_page_0.attachPush(page_0_push);
@@ -423,6 +456,37 @@ void setupEventCallbackFunctions() {
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
 //******************************************************************************
+void nextionSetup() {
+  //*****************************************************************************
+  Serial2.begin(9600);
+
+  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
+  send_to_nextion(); // needed to start communication
+  Serial2.print("rest"); // Reset
+  send_to_nextion();
+
+  setupEventCallbackFunctions();
+
+  delay(2000);
+  sendCommand("page 1"); // switch display to page x
+  send_to_nextion();
+}
+//******************************************************************************
+void nextion_display_loop() {
+  //****************************************************************************
+  nexLoop(nex_listen_list); // check for any touch event
+
+  if (nex_current_page == 1) {
+    display_loop_page_1_left_side();
+    display_loop_page_1_right_side();
+  }
+
+  if (nex_current_page == 2) {
+    display_loop_page_2_left_side();
+    display_loop_page_2_right_side();
+  }
+}
+//------------------------------------------------------------------------------
 
 // FUNCTIONS TO UPDATE DISPLAY SCREEN:
 //******************************************************************************
@@ -586,79 +650,17 @@ void reset_lower_counter_value() {
   }
 }
 
-//------------------------------------------------------------------------------
-void page_0_push(void *ptr) { nex_current_page = 0; }
-void page_1_push(void *ptr) {
-  nex_current_page = 1;
-  hide_info_field();
-
-  // REFRESH BUTTON STATES:
-  nex_prev_cycle_step = !state_controller.get_current_step();
-  nex_state_step_mode = true;
-  nex_state_entlueftung = 0;
-  nex_state_motorbremse = 0;
-  nex_state_motor_oben = 0;
-  nex_state_schlitten = 0;
-  nex_state_messer = 0;
-  nex_state_motor_unten = 0;
-  nex_state_machine_running = 0;
-}
-void page_2_push(void *ptr) {
-  nex_current_page = 2;
-  update_field_values_page_2();
-}
-
-void update_field_values_page_2() {
-  nex_upper_strap_feed = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
-  nex_lower_strap_feed = eeprom_counter.get_value(nex_lower_strap_feed) - 1;
-  nex_prev_shorttime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
-  nex_prev_longtime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
-}
-
-//*****************************************************************************
-void nextionSetup() {
-  //*****************************************************************************
-  Serial2.begin(9600);
-
-  // RESET NEXTION DISPLAY: (refresh display after PLC restart)
-  send_to_nextion(); // needed to start communication
-  Serial2.print("rest"); // Reset
-  send_to_nextion();
-
-  setupEventCallbackFunctions();
-
-  delay(2000);
-  sendCommand("page 1"); // switch display to page x
-  send_to_nextion();
-}
-//*****************************************************************************
-void nextion_display_loop() {
-  //*****************************************************************************
-  nexLoop(nex_listen_list); // check for any touch event
-
-  if (nex_current_page == 1) {
-    display_loop_page_1_left_side();
-    display_loop_page_1_right_side();
-  }
-
-  if (nex_current_page == 2) {
-    display_loop_page_2_left_side();
-    display_loop_page_2_right_side();
-  }
-}
-//*****************************************************************************
-
-// CLASSES FOR THE MAIN CYCLE STEPS
+//******************************************************************************
+// CLASSES FOR THE MAIN CYCLE STEPS ********************************************
 //******************************************************************************
 // TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
 // crimp (tool can work)
 // release air
 // release brake
 // move sledge back
-// cut (open gate, then cut))
+// cut (open gate, then cut))S
 // feed_upper_strap
 // feed_lower_strap
-
 //------------------------------------------------------------------------------
 class Feed_upper_strap : public Cycle_step {
 public:
@@ -747,7 +749,7 @@ private:
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
-//*****************************************************************************
+//******************************************************************************
 void setup() {
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
@@ -771,7 +773,7 @@ void setup() {
   //------------------------------------------------
   nextionSetup();
 }
-//*****************************************************************************
+//******************************************************************************
 void loop() {
 
   // UPDDATE DISPLAY:
@@ -813,4 +815,4 @@ void loop() {
     print_interval_timeout.reset_time();
   }
 }
-//*****************************************************************************
+//******************************************************************************
