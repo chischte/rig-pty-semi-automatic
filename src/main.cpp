@@ -86,6 +86,7 @@ int counter_no_of_values = end_of_counter_enum;
 //*****************************************************************************
 EEPROM_Counter eeprom_counter;
 State_controller state_controller;
+Traffic_light traffic_light;
 
 Cylinder zylinder_schlitten(CONTROLLINO_D3);
 Cylinder zylinder_entlueften(CONTROLLINO_D4);
@@ -203,12 +204,13 @@ void motor_brake_enable() {
   motor_bremse_oben.set(1);
   motor_bremse_unten.set(1);
   brake_timeout.reset_time();
-  //state_controller.set_machine_awake();
+  traffic_light.set_info_user_do_stuff();
 }
 
 void motor_brake_disable() {
   motor_bremse_oben.set(0);
   motor_bremse_oben.set(0);
+  traffic_light.set_info_sleep();
 }
 
 void motor_brake_toggle() {
@@ -393,6 +395,7 @@ void page_0_push(void *ptr) { nex_current_page = 0; }
 void page_1_push(void *ptr) {
   nex_current_page = 1;
   hide_info_field();
+  update_traffic_light_field();
 
   // REFRESH BUTTON STATES:
   nex_prev_cycle_step = !state_controller.get_current_step();
@@ -461,6 +464,7 @@ void nextion_display_setup() {
   send_to_nextion();
 
   setup_display_event_callback_functions();
+  traffic_light.set_info_start();
 
   delay(2000);
   sendCommand("page 1"); // switch display to page x
@@ -487,7 +491,7 @@ void nextion_display_loop() {
 void display_loop_page_1_left_side() {
 
   update_cycle_name();
-  //update_traffic_light_field();
+  update_traffic_light_field();
 
   // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
   if (nex_state_step_mode != state_controller.is_in_step_mode()) {
@@ -503,23 +507,22 @@ void update_cycle_name() {
     String name = get_display_string();
     Serial.println(number + " " + name);
     display_text_in_field(number + " " + name, "t0");
-    //(state_controller.currentCycleStep() + 1) + (" " +
-    // cycleName[state_controller.currentCycleStep()]), "t0");
     nex_prev_cycle_step = state_controller.get_current_step();
   }
 }
 
-void update_traffic_light_field() {
-  String green = "2016";
-  String blue = "500";
-  String red = "63488";
+String get_display_string() {
+  int current_step = state_controller.get_current_step();
+  char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
+  return display_text_cycle_name;
+}
 
-  if (1) {
-    set_traffic_light_field_text("SLEEP");
-    set_traffic_light_field_color(blue);
-  } else {
-    set_traffic_light_field_text("CRIMP");
-    set_traffic_light_field_color(green);
+void update_traffic_light_field() {
+  if (traffic_light.info_has_changed()) {
+    String color = traffic_light.get_info_color();
+    set_traffic_light_field_color(color);
+    String text = traffic_light.get_info_text();
+    set_traffic_light_field_text(text);
   }
 }
 
@@ -532,11 +535,6 @@ void set_traffic_light_field_color(String color) {
   send_to_nextion();
 }
 
-String get_display_string() {
-  int current_step = state_controller.get_current_step();
-  char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
-  return display_text_cycle_name;
-}
 //------------------------------------------------------------------------------
 void display_loop_page_1_right_side() {
   // UPDATE SWITCHBUTTON (dual state):
