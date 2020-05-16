@@ -6,6 +6,12 @@ border="1"
 raw=true
 />
 
+<img
+src="pics/states.jpg"
+border="1"
+raw=true
+/>
+
 /*
  * *****************************************************************************
  * nextion.ino
