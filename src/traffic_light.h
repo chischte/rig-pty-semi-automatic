@@ -11,17 +11,21 @@ public:
   void set_info_user_wait();
   void set_info_sleep();
 
+  bool info_has_changed();
+
   String get_info_color();
   String get_info_text();
-
-  bool info_has_changed();
 
 private:
   bool _info_start_is_active;
   bool _info_user_do_stuff_is_active;
   bool _info_user_wait_is_active;
   bool _info_sleep_is_active;
+  bool _info_has_changed;
   String _info_color;
   String _info_text;
+  String _green = "2016";
+  String _blue = "500";
+  String _red = "63488";
 };
 #endif
