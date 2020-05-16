@@ -299,8 +299,7 @@ void print_cylinder_states() {
 
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
 
-// TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE
-//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE:
 void button_play_pause_ds_push(void *ptr) {
   state_controller.toggle_machine_running_state();
   nex_state_machine_running = !nex_state_machine_running;
@@ -325,8 +324,7 @@ void button_reset_cycle_push(void *ptr) {
   hide_info_field();
 }
 
-// TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE
-//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE:
 void button_klemmen_ds_pop(void *ptr) {
   motor_brake_toggle();
   nex_state_motorbremse = !nex_state_motorbremse;
@@ -350,8 +348,7 @@ void button_schneiden_pop(void *ptr) {
 void button_schlitten_push(void *ptr) { zylinder_schlitten.set(1); }
 void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 
-// TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE
-//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE:
 void button_upper_slider_left_push(void *ptr) { decrease_slider_value(upper_strap_feed); }
 void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_strap_feed); }
 void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
@@ -379,8 +376,7 @@ void decrease_slider_value(int eeprom_value_number) {
   }
 }
 
-// TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE
-//*************************************************
+// TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE:
 void button_reset_shorttime_counter_push(void *ptr) {
   eeprom_counter.set_value(shorttime_counter, 0);
 
@@ -392,8 +388,7 @@ void button_reset_shorttime_counter_pop(void *ptr) {
   nex_reset_button_timeout.set_flag_activated(0);
 }
 
-// PAGE CHANGING EVENTS (TRIGGER UPDATE OF ALL DISPLAY ELEMENTS)
-//*************************************************
+// PAGE CHANGING EVENTS (TRIGGER UPDATE OF ALL DISPLAY ELEMENTS):
 void page_0_push(void *ptr) { nex_current_page = 0; }
 void page_1_push(void *ptr) {
   nex_current_page = 1;
@@ -422,7 +417,7 @@ void update_field_values_page_2() {
 }
 
 //******************************************************************************
-void setupEventCallbackFunctions() {
+void setup_display_event_callback_functions() {
   // PAGE 0 PUSH ONLY:
   nex_page_0.attachPush(page_0_push);
   // PAGE 1 PUSH ONLY:
@@ -456,7 +451,7 @@ void setupEventCallbackFunctions() {
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
 //******************************************************************************
-void nextionSetup() {
+void nextion_display_setup() {
   //*****************************************************************************
   Serial2.begin(9600);
 
@@ -465,7 +460,7 @@ void nextionSetup() {
   Serial2.print("rest"); // Reset
   send_to_nextion();
 
-  setupEventCallbackFunctions();
+  setup_display_event_callback_functions();
 
   delay(2000);
   sendCommand("page 1"); // switch display to page x
@@ -488,8 +483,7 @@ void nextion_display_loop() {
 }
 //------------------------------------------------------------------------------
 
-// FUNCTIONS TO UPDATE DISPLAY SCREEN:
-//******************************************************************************
+// DIPLAY LOOP FUNCTIONS PAGE 1: -----------------------------------------------
 void display_loop_page_1_left_side() {
 
   update_cycle_name();
@@ -594,7 +588,7 @@ void display_loop_page_1_right_side() {
     nex_state_motor_unten = motor_band_unten.get_state();
   }
 }
-//------------------------------------------------------------------------------
+// DIPLAY LOOP FUNCTIONS PAGE 2: -----------------------------------------------
 void display_loop_page_2_left_side() {
 
   update_upper_slider_value();
@@ -621,7 +615,6 @@ String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix) {
   return suffixed_string;
 }
 
-//------------------------------------------------------------------------------
 void display_loop_page_2_right_side() {
   update_upper_counter_value();
   update_lower_counter_value();
@@ -649,7 +642,6 @@ void reset_lower_counter_value() {
     }
   }
 }
-
 //******************************************************************************
 // CLASSES FOR THE MAIN CYCLE STEPS ********************************************
 //******************************************************************************
@@ -771,7 +763,7 @@ void setup() {
   pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // !!! DEACTIVATE FOR CONTROLLINO !!!
   Serial.println("EXIT SETUP");
   //------------------------------------------------
-  nextionSetup();
+  nextion_display_setup();
 }
 //******************************************************************************
 void loop() {
