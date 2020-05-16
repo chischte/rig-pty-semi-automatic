@@ -57,6 +57,7 @@ void reset_lower_counter_value();
 void increase_slider_value(int eeprom_value_number);
 void decrease_slider_value(int eeprom_value_number);
 void update_field_values_page_2();
+void set_play_pause_button_pause();
 String get_display_string();
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix);
 
@@ -257,7 +258,7 @@ void clear_text_field(String textField) {
   send_to_nextion();
 }
 
-void print_on_value_field(int value, String valueField) {
+void display_value_in_field(int value, String valueField) {
   Serial2.print(valueField);
   Serial2.print(".val=");
   Serial2.print(value);
@@ -270,7 +271,7 @@ void print_current_step() {
   // Serial.println(cycleName[state_controller.currentCycleStep()]);
 }
 
-void print_on_text_field(String text, String textField) {
+void display_text_in_field(String text, String textField) {
   Serial2.print(textField);
   Serial2.print(".txt=");
   Serial2.print("\"");
@@ -428,6 +429,7 @@ void setupEventCallbackFunctions() {
 void display_loop_page_1_left_side() {
 
   update_cycle_name();
+  set_play_pause_button_pause();
 
   // UPDATE SWITCHSTATE "PLAY"/"PAUSE":
   if (nex_state_machine_running != state_controller.machine_is_running()) {
@@ -443,17 +445,23 @@ void display_loop_page_1_left_side() {
     nex_state_step_mode = state_controller.is_in_step_mode();
   }
 }
-
 void update_cycle_name() {
   if (nex_prev_cycle_step != state_controller.get_current_step()) {
     String number = String(state_controller.get_current_step() + 1);
     String name = get_display_string();
     Serial.println(number + " " + name);
-    print_on_text_field(number + " " + name, "t0");
+    display_text_in_field(number + " " + name, "t0");
     //(state_controller.currentCycleStep() + 1) + (" " +
     // cycleName[state_controller.currentCycleStep()]), "t0");
     nex_prev_cycle_step = state_controller.get_current_step();
   }
+}
+
+void set_play_pause_button_pause() {
+  String info = "WAARTEN";
+  display_text_in_field(info, "bt0");
+  Serial2.print("bt0.bco2=500");
+  send_to_nextion();
 }
 
 String get_display_string() {
@@ -531,13 +539,13 @@ void display_loop_page_2_left_side() {
 void update_upper_slider_value() {
 
   if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
-    print_on_text_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"), "t4");
+    display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"), "t4");
     nex_upper_strap_feed = eeprom_counter.get_value(upper_strap_feed);
   }
 }
 void update_lower_slider_value() {
   if (eeprom_counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
-    print_on_text_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"), "t2");
+    display_text_in_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"), "t2");
     nex_lower_strap_feed = eeprom_counter.get_value(lower_strap_feed);
   }
 }
@@ -557,14 +565,14 @@ void display_loop_page_2_right_side() {
 }
 void update_upper_counter_value() {
   if (nex_prev_longtime_counter != eeprom_counter.get_value(longtime_counter)) {
-    print_on_text_field(String(eeprom_counter.get_value(longtime_counter)), "t10");
+    display_text_in_field(String(eeprom_counter.get_value(longtime_counter)), "t10");
     nex_prev_longtime_counter = eeprom_counter.get_value(longtime_counter);
   }
 }
 void update_lower_counter_value() {
   // UPDATE LOWER COUNTER:
   if (nex_prev_shorttime_counter != eeprom_counter.get_value(shorttime_counter)) {
-    print_on_text_field(String(eeprom_counter.get_value(shorttime_counter)), "t12");
+    display_text_in_field(String(eeprom_counter.get_value(shorttime_counter)), "t12");
     nex_prev_shorttime_counter = eeprom_counter.get_value(shorttime_counter);
   }
 }
@@ -643,13 +651,13 @@ void nextion_display_loop() {
 // CLASSES FOR THE MAIN CYCLE STEPS
 //******************************************************************************
 // TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
-// feed_upper_strap
-// feed_lower_strap
-// brake (tool can work)
+// crimp (tool can work)
 // release air
-// cut (open gate, then cut))
 // release brake
 // move sledge back
+// cut (open gate, then cut))
+// feed_upper_strap
+// feed_lower_strap
 
 //------------------------------------------------------------------------------
 class Feed_upper_strap : public Cycle_step {
