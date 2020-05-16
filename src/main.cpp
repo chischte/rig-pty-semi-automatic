@@ -42,7 +42,7 @@
 #include <alias_colino.h> //        aliases when using an Arduino instead of a Controllino
 #include <cycle_step.h> //          blueprint of a cycle step
 #include <state_controller.h> //    keeps track of machine states
-#include <traffic_light.h> //       keeps track of colored display infos
+#include <traffic_light.h> //       keeps track of user infos, manages text and colors
 
 // DECLARE FUNCTIONS FOR THE COMPILER:
 //*****************************************************************************
