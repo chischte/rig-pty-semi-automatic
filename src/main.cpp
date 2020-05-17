@@ -1,6 +1,6 @@
 /*
  * *****************************************************************************
- * PTY SEMI-AUTOMATIC-RIG
+ * PTY-SEMI-AUTOMATIC-RIG
  * *****************************************************************************
  * Program for a semi-automatic endurance test rig for a mechanical tool
  * *****************************************************************************
@@ -9,19 +9,15 @@
  * *****************************************************************************
  * TODO:
  * 
- * Read error messages
- * Update traffic light only when state changed
- * Only go to sleep mode from "crimpen" screen
+ * ? Implement on "on init" function in abstract class Cycle_step
+ * Check if traffic light display updates only when a state change happend
  * Implement stepper motor driver library and code
+ * Fix bug traffic light not updating on page change
  * eeprom counter is not a counter but a rememberer!
- * Find unused variables ...how?
  * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
- * Implement sub step possibility
- * Implement timeout possibility, if smart, to abstract cycle step class
- * Make Nextion button state monitoring more elegant
- * 
- * 
+ * ? Implement sub step possibility
+ * ? Implement timeout possibility, if smart, to abstract cycle step class
  * Read:
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  */
@@ -81,7 +77,7 @@ int counter_no_of_values = end_of_counter_enum;
 
 // GENERATE OBJECTS ************************************************************
 
-EEPROM_Counter eeprom_counter;
+EEPROM_Counter counter;
 State_controller state_controller;
 Traffic_light traffic_light;
 
@@ -163,9 +159,8 @@ byte nex_prev_cycle_step;
 byte nex_current_page = 0;
 long nex_upper_strap_feed;
 long nex_lower_strap_feed;
-long nex_prev_shorttime_counter;
-long nex_prev_longtime_counter;
-String unused_variable = "0";
+long nex_shorttime_counter;
+long nex_longtime_counter;
 
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS ************************
 
@@ -201,13 +196,11 @@ void motor_brake_enable() {
   motor_bremse_oben.set(1);
   motor_bremse_unten.set(1);
   brake_timeout.reset_time();
-  traffic_light.set_info_user_do_stuff();
 }
 
 void motor_brake_disable() {
   motor_bremse_oben.set(0);
   motor_bremse_oben.set(0);
-  traffic_light.set_info_sleep();
 }
 
 void motor_brake_toggle() {
@@ -218,10 +211,9 @@ void motor_brake_toggle() {
   }
 }
 
-void monitor_motor_brake_and_set_sleep() {
+void monitor_motor_brake() {
   if (brake_timeout.has_timed_out()) {
     motor_brake_disable();
-    //state_controller.set_machine_asleep();
   }
 }
 
@@ -233,6 +225,19 @@ void print_cylinder_states() {
                  motor_bremse_unten.get_state());
 }
 
+void manage_traffic_light() {
+  // GO TO SLEEP:
+  if (traffic_light.is_in_user_do_stuff_state() &&
+      brake_timeout.has_timed_out()) {
+    Serial.println("HAUDI GANG");
+    traffic_light.set_info_sleep();
+  }
+  // WAKE UP:
+  if (traffic_light.is_in_sleep_state() && !brake_timeout.has_timed_out()) {
+    traffic_light.set_info_user_do_stuff();
+  }
+}
+
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
 
 void send_to_nextion() {
@@ -242,7 +247,7 @@ void send_to_nextion() {
 }
 
 void update_display_counter() {
-  long new_value = eeprom_counter.get_value(longtime_counter);
+  long new_value = counter.get_value(longtime_counter);
   Serial2.print("t0.txt=");
   Serial2.print("\"");
   Serial2.print(new_value);
@@ -255,6 +260,15 @@ void show_info_field() {
     Serial2.print("vis t4,1");
     send_to_nextion();
   }
+}
+
+void display_text_in_info_field(String text) {
+  Serial2.print("t4");
+  Serial2.print(".txt=");
+  Serial2.print("\"");
+  Serial2.print(text);
+  Serial2.print("\"");
+  send_to_nextion();
 }
 
 void hide_info_field() {
@@ -308,26 +322,22 @@ void set_momentary_button_high_or_low(String button, bool state) {
 // NEXTION TOUCH EVENT FUNCTIONS ***********************************************
 
 // TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE ------------------------------------
-void button_play_pause_ds_push(void *ptr) {
-  state_controller.toggle_machine_running_state();
 
-  if (!state_controller.machine_is_running()) {
-    traffic_light.set_info_start();
+void button_traffic_light_push(void *ptr) {
+
+  if (traffic_light.is_in_start_state()) {
+    state_controller.set_machine_running();
+    nex_state_machine_running = !nex_state_machine_running;
   }
-
   if (traffic_light.is_in_sleep_state()) {
-    motor_brake_enable();
+    motor_brake_enable(); // wakes the tool up
   }
-  nex_state_machine_running = !nex_state_machine_running;
 }
 
-void button_modeswitch_ds_push(void *ptr) {
-  if (state_controller.is_in_auto_mode()) {
-    state_controller.set_step_mode();
-  } else {
-    state_controller.set_auto_mode();
-  }
-  nex_state_step_mode = state_controller.is_in_step_mode();
+void switch_step_auto_mode_push(void *ptr) {
+  // step modes is not implemented on this machine
+  // make the button being toggled back:
+  nex_state_step_mode = !state_controller.is_in_step_mode();
 }
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
@@ -346,15 +356,23 @@ void button_reset_cycle_push(void *ptr) {
 
 // TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE -----------------------------------
 
-void button_klemmen_ds_pop(void *ptr) {
+void switch_motor_brake_push(void *ptr) {
   motor_brake_toggle();
   nex_state_motor_brake = !nex_state_motor_brake;
 }
-void button_motor_oben_push(void *ptr) { motor_band_oben.set(1); }
-void button_motor_oben_pop(void *ptr) { motor_band_oben.set(0); }
-void button_motor_unten_push(void *ptr) { motor_band_unten.set(1); }
-void button_motor_unten_pop(void *ptr) { motor_band_unten.set(0); }
-void button_entlueften_ds_push(void *ptr) {
+void button_motor_oben_push(void *ptr) { //
+  motor_band_oben.set(1);
+}
+void button_motor_oben_pop(void *ptr) { //
+  motor_band_oben.set(0);
+}
+void button_motor_unten_push(void *ptr) { //
+  motor_band_unten.set(1);
+}
+void button_motor_unten_pop(void *ptr) { //
+  motor_band_unten.set(0);
+}
+void switch_air_release_push(void *ptr) {
   zylinder_entlueften.toggle();
   nex_state_air_release = !nex_state_air_release;
 }
@@ -366,8 +384,12 @@ void button_schneiden_pop(void *ptr) {
   zylinder_messer.set(0);
   zylinder_visier.set(1);
 }
-void button_schlitten_push(void *ptr) { zylinder_schlitten.set(1); }
-void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
+void button_schlitten_push(void *ptr) { //
+  zylinder_schlitten.set(1);
+}
+void button_schlitten_pop(void *ptr) { //
+  zylinder_schlitten.set(0);
+}
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE ------------------------------------
 
@@ -386,30 +408,30 @@ void button_lower_slider_right_push(void *ptr) {
 void increase_slider_value(int eeprom_value_number) {
   long max_value = 200; // [mm]
   long interval = 5;
-  long current_value = eeprom_counter.get_value(eeprom_value_number);
+  long current_value = counter.get_value(eeprom_value_number);
 
   if (current_value <= (max_value - interval)) {
-    eeprom_counter.set_value(eeprom_value_number, (current_value + interval));
+    counter.set_value(eeprom_value_number, (current_value + interval));
   } else {
-    eeprom_counter.set_value(eeprom_value_number, max_value);
+    counter.set_value(eeprom_value_number, max_value);
   }
 }
 void decrease_slider_value(int eeprom_value_number) {
   long min_value = 0; // [mm]
   long interval = 5;
-  long current_value = eeprom_counter.get_value(eeprom_value_number);
+  long current_value = counter.get_value(eeprom_value_number);
 
   if (current_value >= (min_value + interval)) {
-    eeprom_counter.set_value(eeprom_value_number, (current_value - interval));
+    counter.set_value(eeprom_value_number, (current_value - interval));
   } else {
-    eeprom_counter.set_value(eeprom_value_number, min_value);
+    counter.set_value(eeprom_value_number, min_value);
   }
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE -----------------------------------
 
 void button_reset_shorttime_counter_push(void *ptr) {
-  eeprom_counter.set_value(shorttime_counter, 0);
+  counter.set_value(shorttime_counter, 0);
 
   // ACTIVATE TIMEOUT TO RESET LONGTIME COUNTER:
   nex_reset_button_timeout.reset_time();
@@ -443,12 +465,10 @@ void page_2_push(void *ptr) {
   update_field_values_page_2();
 }
 void update_field_values_page_2() {
-  nex_upper_strap_feed = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
-  nex_lower_strap_feed = eeprom_counter.get_value(nex_lower_strap_feed) - 1;
-  nex_prev_shorttime_counter =
-      eeprom_counter.get_value(nex_upper_strap_feed) - 1;
-  nex_prev_longtime_counter =
-      eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_upper_strap_feed = counter.get_value(nex_upper_strap_feed) - 1;
+  nex_lower_strap_feed = counter.get_value(nex_lower_strap_feed) - 1;
+  nex_shorttime_counter = counter.get_value(nex_upper_strap_feed) - 1;
+  nex_longtime_counter = counter.get_value(nex_upper_strap_feed) - 1;
 }
 
 // DECLARE DISPLAY EVENT LISTENERS *********************************************
@@ -463,10 +483,10 @@ void setup_display_event_callback_functions() {
   button_reset_cycle.attachPush(button_reset_cycle_push);
   button_previous_step.attachPush(button_stepback_push);
   button_next_step.attachPush(button_next_step_push);
-  switch_step_auto_mode.attachPush(button_modeswitch_ds_push);
-  button_traffic_light.attachPush(button_play_pause_ds_push);
-  switch_motor_brake.attachPush(button_klemmen_ds_pop);
-  switch_air_release.attachPush(button_entlueften_ds_push);
+  button_traffic_light.attachPush(button_traffic_light_push);
+  switch_step_auto_mode.attachPush(switch_step_auto_mode_push);
+  switch_motor_brake.attachPush(switch_motor_brake_push);
+  switch_air_release.attachPush(switch_air_release_push);
   // PAGE 1 PUSH AND POP:
   button_upper_motor.attachPush(button_motor_oben_push);
   button_upper_motor.attachPop(button_motor_oben_pop);
@@ -621,21 +641,21 @@ void display_loop_page_2_left_side() {
 }
 
 void update_upper_slider_value() {
-  if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
+  if (counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
     display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"),
                           "t4");
-    nex_upper_strap_feed = eeprom_counter.get_value(upper_strap_feed);
+    nex_upper_strap_feed = counter.get_value(upper_strap_feed);
   }
 }
 void update_lower_slider_value() {
-  if (eeprom_counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
+  if (counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
     display_text_in_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"),
                           "t2");
-    nex_lower_strap_feed = eeprom_counter.get_value(lower_strap_feed);
+    nex_lower_strap_feed = counter.get_value(lower_strap_feed);
   }
 }
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix) {
-  String value = String(eeprom_counter.get_value(eeprom_value_number));
+  String value = String(counter.get_value(eeprom_value_number));
   String space = " ";
   String suffixed_string = value + space + suffix;
   return suffixed_string;
@@ -650,19 +670,16 @@ void display_loop_page_2_right_side() {
 }
 
 void update_upper_counter_value() {
-  if (nex_prev_longtime_counter != eeprom_counter.get_value(longtime_counter)) {
-    display_text_in_field(String(eeprom_counter.get_value(longtime_counter)),
-                          "t10");
-    nex_prev_longtime_counter = eeprom_counter.get_value(longtime_counter);
+  if (nex_longtime_counter != counter.get_value(longtime_counter)) {
+    display_text_in_field(String(counter.get_value(longtime_counter)), "t10");
+    nex_longtime_counter = counter.get_value(longtime_counter);
   }
 }
 void update_lower_counter_value() {
   // UPDATE LOWER COUNTER:
-  if (nex_prev_shorttime_counter !=
-      eeprom_counter.get_value(shorttime_counter)) {
-    display_text_in_field(String(eeprom_counter.get_value(shorttime_counter)),
-                          "t12");
-    nex_prev_shorttime_counter = eeprom_counter.get_value(shorttime_counter);
+  if (nex_shorttime_counter != counter.get_value(shorttime_counter)) {
+    display_text_in_field(String(counter.get_value(shorttime_counter)), "t12");
+    nex_shorttime_counter = counter.get_value(shorttime_counter);
   }
 }
 void reset_lower_counter_value() {
@@ -670,7 +687,7 @@ void reset_lower_counter_value() {
     Serial.println("HAUDI");
     if (nex_reset_button_timeout.has_timed_out()) {
       Serial.println("GAUDI");
-      eeprom_counter.set_value(longtime_counter, 0);
+      counter.set_value(longtime_counter, 0);
     }
   }
 }
@@ -701,7 +718,9 @@ public:
     motor_band_oben.set(1);
     motor_band_unten.set(1);
     motor_brake_enable();
+
     if (test_switch.switchedLow()) {
+      traffic_light.set_info_user_do_stuff();
       std::cout << "STEP COMPLETED\n";
       set_completed();
     }
@@ -718,6 +737,7 @@ public:
   void do_stuff() {
     if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
+      traffic_light.set_info_machine_do_stuff();
       set_completed();
     }
   }
@@ -741,8 +761,9 @@ public:
     if (test_switch.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
-      eeprom_counter.count_one_up(longtime_counter);
-      eeprom_counter.count_one_up(shorttime_counter);
+      traffic_light.set_info_machine_do_stuff();
+      counter.count_one_up(longtime_counter);
+      counter.count_one_up(shorttime_counter);
     }
   }
 };
@@ -763,12 +784,12 @@ void setup() {
   state_controller.set_no_of_steps(no_of_cycle_steps);
   //------------------------------------------------
   // SETUP COUNTER:
-  eeprom_counter.setup(0, 1023, counter_no_of_values);
+  counter.setup(0, 1023, counter_no_of_values);
   //------------------------------------------------
   Serial.begin(115200);
   state_controller.set_auto_mode();
-  state_controller.set_machine_running();
-  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // !!! DEACTIVATE FOR CONTROLLINO !!!
+  state_controller.set_machine_stop();
+  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextion_display_setup();
@@ -778,11 +799,11 @@ void setup() {
 
 void loop() {
 
-  // UPDDATE DISPLAY:
+  // UPDATE DISPLAY:
   nextion_display_loop();
 
   // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
-  monitor_motor_brake_and_set_sleep();
+  monitor_motor_brake();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
@@ -803,13 +824,12 @@ void loop() {
 
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
   if (state_controller.machine_is_running()) {
-    // std::cout << "THIS IS WHAT IT DOES: ";
     cycle_steps[state_controller.get_current_step()]->do_stuff();
     // std::cout << "---------------\n\n";
   }
-  // int current_step_no=state_controller.get_current_step();
-  //...WESHALB GEHT DAS NICHT?: Cycle_step
-  // current_cycle_step=cycle_steps[current_step_no];
+
+  // MANAGE TRAFFIC LIGHT:
+  manage_traffic_light();
 
   // DISPLAY DEBUG INFOMATION:
   if (print_interval_timeout.has_timed_out()) {
