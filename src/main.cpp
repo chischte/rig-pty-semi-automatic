@@ -10,25 +10,21 @@
  * TODO:
  * 
  * UPDATE TRAFFIC LIGHT ONLY WHEN STATE CHANGED
- * Implement user info "WARTEN" in red and "CRIMPEN" in green
  * Refactor star- an dashlines, update code guidelines
-  * eeprom counter is not a counter but a rememberer!
+ * Implement stepper motor driver library and code
+ * eeprom counter is not a counter but a rememberer!
  * Find unused variables ...how?
  * Clean up code
+ * Read error messages
  * Split insomnia in two libraries (delay and timeout)
- * Implement stepper motor driver library and code
  * Install code check tools
+ * Implement sub step possibility
+ * Implement timeout possibility, if smart, to abstract cycle step class
+ * Make Nextion button state monitoring more elegant
  * 
- * For all submodule libraries:
- *    Make a "legacy branch" at the state of the current master branch
- *    Merge the current develop branch to master  
  * 
  * Read:
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
- * Implement Nextion, make button state monitoring more elegant
- * Implement sub step possibility
- * Implement timeout possibility, if smart, to abstract cycle step class
- * Implement Stepper motors! ...and possibility to change [mm]
  */
 
 //#include <Controllino.h> // PIO Controllino Library, comment out when using an Arduino
