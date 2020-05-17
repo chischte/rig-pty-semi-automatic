@@ -9,15 +9,12 @@
  * *****************************************************************************
  * TODO:
  * 
- * rename all ds buttons to switch
- * UPDATE TRAFFIC LIGHT ONLY WHEN STATE CHANGED
+ * Read error messages
+ * Update traffic light only when state changed
  * Only go to sleep mode from "crimpen" screen
- * Refactor star- an dashlines, update code guidelines
  * Implement stepper motor driver library and code
  * eeprom counter is not a counter but a rememberer!
  * Find unused variables ...how?
- * Clean up code
- * Read error messages
  * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
  * Implement sub step possibility
@@ -44,7 +41,7 @@
 #include <state_controller.h> //    keeps track of machine states
 #include <traffic_light.h> //       keeps track of user infos, manages text and colors
 
-// DECLARE FUNCTIONS FOR THE COMPILER: *****************************************
+// DECLARE FUNCTIONS IF NEEDED FOR THE COMPILER: *******************************
 
 void clear_text_field(String textField);
 void hide_info_field();
@@ -154,7 +151,6 @@ NexTouch *nex_listen_list[] = { //
 
 // VARIABLES TO MONITOR NEXTION DISPLAY STATES *********************************
 
-bool nex_state_traffic_light;
 bool nex_state_air_release;
 bool nex_state_upper_motor;
 bool nex_state_lower_motor;
@@ -169,6 +165,7 @@ long nex_upper_strap_feed;
 long nex_lower_strap_feed;
 long nex_prev_shorttime_counter;
 long nex_prev_longtime_counter;
+String unused_variable = "0";
 
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS ************************
 
@@ -373,6 +370,7 @@ void button_schlitten_push(void *ptr) { zylinder_schlitten.set(1); }
 void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE ------------------------------------
+
 void button_upper_slider_left_push(void *ptr) {
   decrease_slider_value(upper_strap_feed);
 }
@@ -409,6 +407,7 @@ void decrease_slider_value(int eeprom_value_number) {
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE -----------------------------------
+
 void button_reset_shorttime_counter_push(void *ptr) {
   eeprom_counter.set_value(shorttime_counter, 0);
 
@@ -421,6 +420,7 @@ void button_reset_shorttime_counter_pop(void *ptr) {
 }
 
 // PAGE CHANGING EVENTS (TRIGGER UPDATE OF ALL DISPLAY ELEMENTS) ---------------
+
 void page_0_push(void *ptr) { nex_current_page = 0; }
 void page_1_push(void *ptr) {
   nex_current_page = 1;
@@ -507,7 +507,7 @@ void nextion_display_setup() {
   send_to_nextion();
 }
 
-// DISPLAY LOOP ****************************************************************
+// DISPLAY LOOPS ***************************************************************
 
 void nextion_display_loop() {
   //****************************************************************************
@@ -576,43 +576,35 @@ void set_traffic_light_field_color(String color) {
 
 void display_loop_page_1_right_side() {
 
-  // UPDATE SWITCH:
+  // UPDATE SWITCHES:
   if (zylinder_entlueften.get_state() != nex_state_air_release) {
     toggle_ds_switch("bt3");
     nex_state_air_release = !nex_state_air_release;
   }
-
-  // UPDATE SWITCH:
   if (motor_bremse_oben.get_state() != nex_state_motor_brake) {
     toggle_ds_switch("bt5");
     nex_state_motor_brake = !nex_state_motor_brake;
   }
 
-  // UPDATE BUTTON:
+  // UPDATE BUTTONS:
   if (zylinder_schlitten.get_state() != nex_state_sledge) {
     bool state = zylinder_schlitten.get_state();
     String button = "b6";
     set_momentary_button_high_or_low(button, state);
     nex_state_sledge = zylinder_schlitten.get_state();
   }
-
-  // UPDATE BUTTON:
   if (motor_band_oben.get_state() != nex_state_upper_motor) {
     bool state = motor_band_oben.get_state();
     String button = "b4";
     set_momentary_button_high_or_low(button, state);
     nex_state_upper_motor = motor_band_oben.get_state();
   }
-
-  // UPDATE BUTTON:
   if (zylinder_messer.get_state() != nex_state_blade) {
     bool state = zylinder_messer.get_state();
     String button = "b5";
     set_momentary_button_high_or_low(button, state);
     nex_state_blade = zylinder_messer.get_state();
   }
-
-  // UPDATE BUTTON:
   if (motor_band_unten.get_state() != nex_state_lower_motor) {
     bool state = motor_band_unten.get_state();
     String button = "b3";
@@ -627,6 +619,7 @@ void display_loop_page_2_left_side() {
   update_upper_slider_value();
   update_lower_slider_value();
 }
+
 void update_upper_slider_value() {
   if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
     display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"),
@@ -649,11 +642,13 @@ String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix) {
 }
 
 // DIPLAY LOOP PAGE 2 RIGHT SIDE: ----------------------------------------------
+
 void display_loop_page_2_right_side() {
   update_upper_counter_value();
   update_lower_counter_value();
   reset_lower_counter_value();
 }
+
 void update_upper_counter_value() {
   if (nex_prev_longtime_counter != eeprom_counter.get_value(longtime_counter)) {
     display_text_in_field(String(eeprom_counter.get_value(longtime_counter)),
@@ -751,29 +746,6 @@ public:
     }
   }
 };
-//------------------------------------------------------------------------------
-/* class Step_wippenhebel : public Cycle_step
-{
-public:
-  char *get_display_text()
-  {
-    char *display_text = (char *)malloc(20);
-    strcpy(display_text, "WIPPENHEBEL");
-    return display_text;
-  }
-  void do_stuff()
-  {
-    //motor_band_oben.stroke(1500, 1000);
-    //if (motor_band_oben.stroke_completed())
-    if(test_switch.switchedLow())
-    {
-      std::cout << "Class I bytes ya tooth\n";
-      set_completed();
-    }
-  }
-
-private:
-}; */
 //------------------------------------------------------------------------------
 
 // MAIN SETUP ******************************************************************
