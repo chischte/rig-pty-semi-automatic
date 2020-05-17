@@ -1,12 +1,12 @@
 /*
- * ****************************************************************************
+ * *****************************************************************************
  * PTY SEMI-AUTOMATIC-RIG
- * ****************************************************************************
+ * *****************************************************************************
  * Program for a semi-automatic endurance test rig for a mechanical tool
- * ****************************************************************************
+ * *****************************************************************************
  * Michael Wettstein
  * May 2020, Zürich
- * ****************************************************************************
+ * *****************************************************************************
  * TODO:
  * 
  * rename all ds buttons to switch
@@ -29,7 +29,9 @@
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  */
 
-//#include <Controllino.h> // PIO Controllino Library, comment out when using an Arduino
+// INCLUDE HEADERS *************************************************************
+
+//#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
@@ -42,8 +44,8 @@
 #include <state_controller.h> //    keeps track of machine states
 #include <traffic_light.h> //       keeps track of user infos, manages text and colors
 
-// DECLARE FUNCTIONS FOR THE COMPILER:
-//*****************************************************************************
+// DECLARE FUNCTIONS FOR THE COMPILER: *****************************************
+
 void clear_text_field(String textField);
 void hide_info_field();
 void page_0_push(void *ptr);
@@ -69,7 +71,7 @@ void set_play_pause_button_pause();
 String get_display_string();
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix);
 
-// DEFINE NAMES CYCLE COUNTER: *************************************************
+// DEFINE NAMES FOR THE CYCLE COUNTER ******************************************
 
 enum counter {
   longtime_counter, //
@@ -80,8 +82,8 @@ enum counter {
 };
 int counter_no_of_values = end_of_counter_enum;
 
-// GENERATE INSTANCES OF CLASSES:
-//*****************************************************************************
+// GENERATE OBJECTS ************************************************************
+
 EEPROM_Counter eeprom_counter;
 State_controller state_controller;
 Traffic_light traffic_light;
@@ -104,31 +106,31 @@ Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia brake_timeout(5000); // to prevent overheating
 Insomnia print_interval_timeout(500);
 
-// NEXTION DISPLAY - OBJECTS ***************************************************
+// NEXTION DISPLAY OBJECTS *****************************************************
 
-// PAGE 0:
+// PAGE 0 ----------------------------------------------------------------------
 NexPage nex_page_0 = NexPage(0, 0, "page0");
-// PAGE 1 - LEFT SIDE:
+// PAGE 1 - LEFT SIDE ----------------------------------------------------------
 NexPage nex_page_1 = NexPage(1, 0, "page1");
 NexButton button_previous_step = NexButton(1, 6, "b1");
 NexButton button_next_step = NexButton(1, 7, "b2");
 NexButton button_reset_cycle = NexButton(1, 5, "b0");
 NexButton button_traffic_light = NexButton(1, 15, "b8");
-NexDSButton button_modeswitch_ds = NexDSButton(1, 4, "bt1");
-// PAGE 1 - RIGHT SIDE
-NexDSButton button_entlueften_ds = NexDSButton(1, 13, "bt3");
-NexDSButton button_klemmen_ds = NexDSButton(1, 10, "bt5");
-NexButton button_schlitten = NexButton(1, 1, "b6");
-NexButton button_motor_oben = NexButton(1, 9, "b4");
-NexButton button_schneiden = NexButton(1, 14, "b5");
-NexButton button_motor_unten = NexButton(1, 8, "b3");
-// PAGE 2 - LEFT SIDE:
+NexDSButton switch_step_auto_mode = NexDSButton(1, 4, "bt1");
+// PAGE 1 - RIGHT SIDE ---------------------------------------------------------
+NexButton button_upper_motor = NexButton(1, 9, "b4");
+NexButton button_lower_motor = NexButton(1, 8, "b3");
+NexButton button_blade = NexButton(1, 14, "b5");
+NexButton button_sledge = NexButton(1, 1, "b6");
+NexDSButton switch_motor_brake = NexDSButton(1, 10, "bt5");
+NexDSButton switch_air_release = NexDSButton(1, 13, "bt3");
+// PAGE 2 - LEFT SIDE ----------------------------------------------------------
 NexPage nex_page_2 = NexPage(2, 0, "page2");
 NexButton button_slider_1_left = NexButton(2, 5, "b1");
 NexButton button_slider_1_right = NexButton(2, 6, "b2");
 NexButton button_slider_2_left = NexButton(2, 16, "b5");
 NexButton button_slider_2_right = NexButton(2, 17, "b6");
-// PAGE 2 - RIGHT SIDE:
+// PAGE 2 - RIGHT SIDE ---------------------------------------------------------
 NexButton button_reset_shorttime_counter = NexButton(2, 12, "b4");
 
 // NEXTION DISPLAY - TOUCH EVENT LIST ******************************************
@@ -138,13 +140,13 @@ NexTouch *nex_listen_list[] = { //
     &nex_page_0,
     // PAGE 1 LEFT:
     &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle,
-    &button_traffic_light, &button_modeswitch_ds,
+    &button_traffic_light, &switch_step_auto_mode,
     // PAGE 1 RIGHT:
-    &button_schneiden, &button_klemmen_ds, &button_entlueften_ds, &button_schlitten,
-    &button_motor_oben, &button_motor_unten,
+    &button_blade, &switch_motor_brake, &switch_air_release, &button_sledge,
+    &button_upper_motor, &button_lower_motor,
     // PAGE 2 LEFT:
-    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2, &button_slider_2_left,
-    &button_slider_2_right,
+    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2,
+    &button_slider_2_left, &button_slider_2_right,
     // PAGE 2 RIGHT:
     &button_reset_shorttime_counter,
     // END OF LISTEN LIST:
@@ -152,14 +154,14 @@ NexTouch *nex_listen_list[] = { //
 
 // VARIABLES TO MONITOR NEXTION DISPLAY STATES *********************************
 
-bool nex_state_play_pause_button;
-bool nex_state_entlueftung;
-bool nex_state_motorbremse;
-bool nex_state_motor_oben;
-bool nex_state_schlitten;
-bool nex_state_messer;
+bool nex_state_traffic_light;
+bool nex_state_air_release;
+bool nex_state_upper_motor;
+bool nex_state_lower_motor;
+bool nex_state_motor_brake;
+bool nex_state_sledge;
+bool nex_state_blade;
 bool nex_state_machine_running;
-bool nex_state_motor_unten;
 bool nex_state_step_mode = true;
 byte nex_prev_cycle_step;
 byte nex_current_page = 0;
@@ -168,12 +170,12 @@ long nex_lower_strap_feed;
 long nex_prev_shorttime_counter;
 long nex_prev_longtime_counter;
 
-// CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS
-//*****************************************************************************
+// CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS ************************
+
 int Cycle_step::object_count = 0; // enable object counting
 std::vector<Cycle_step *> cycle_steps;
 
-// NON NEXTION FUNCTIONS: ******************************************************
+// NON NEXTION FUNCTIONS *******************************************************
 
 void reset_cylinder_states() {
   zylinder_schlitten.set(0);
@@ -226,7 +228,15 @@ void monitor_motor_brake_and_set_sleep() {
   }
 }
 
-// NEXTION GENERAL DISPLAY FUNCTIONS: ******************************************
+void print_cylinder_states() {
+  Serial.println("ZYLINDER_STATES: " + String(zylinder_entlueften.get_state()) +
+                 zylinder_messer.get_state() + zylinder_visier.get_state() +
+                 zylinder_schlitten.get_state() + motor_band_oben.get_state() +
+                 motor_band_unten.get_state() + motor_bremse_oben.get_state() +
+                 motor_bremse_unten.get_state());
+}
+
+// NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
 
 void send_to_nextion() {
   Serial2.write(0xff);
@@ -288,17 +298,19 @@ void display_text_in_field(String text, String textField) {
   send_to_nextion();
 }
 
-void print_cylinder_states() {
-  Serial.println("ZYLINDER_STATES: " + String(zylinder_entlueften.get_state()) +
-                 zylinder_messer.get_state() + zylinder_visier.get_state() +
-                 zylinder_schlitten.get_state() + motor_band_oben.get_state() +
-                 motor_band_unten.get_state() + motor_bremse_oben.get_state() +
-                 motor_bremse_unten.get_state());
+void toggle_ds_switch(String button) {
+  Serial2.print("click " + button + ",1");
+  send_to_nextion();
 }
 
-// NEXTION TOUCH EVENT FUNCTIONS *******************************************
+void set_momentary_button_high_or_low(String button, bool state) {
+  Serial2.print("click " + button + "," + state);
+  send_to_nextion();
+}
 
-// TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE:
+// NEXTION TOUCH EVENT FUNCTIONS ***********************************************
+
+// TOUCH EVENT FUNCTIONS PAGE 1 - LEFT SIDE ------------------------------------
 void button_play_pause_ds_push(void *ptr) {
   state_controller.toggle_machine_running_state();
 
@@ -322,20 +334,24 @@ void button_modeswitch_ds_push(void *ptr) {
 }
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
-    state_controller.set_current_step_to(state_controller.get_current_step() - 1);
+    state_controller.set_current_step_to(state_controller.get_current_step() -
+                                         1);
   }
 }
-void button_next_step_push(void *ptr) { state_controller.switch_to_next_step(); }
+void button_next_step_push(void *ptr) {
+  state_controller.switch_to_next_step();
+}
 void button_reset_cycle_push(void *ptr) {
   state_controller.set_reset_mode(1);
   clear_text_field("t4");
   hide_info_field();
 }
 
-// TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE:
+// TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE -----------------------------------
+
 void button_klemmen_ds_pop(void *ptr) {
   motor_brake_toggle();
-  nex_state_motorbremse = !nex_state_motorbremse;
+  nex_state_motor_brake = !nex_state_motor_brake;
 }
 void button_motor_oben_push(void *ptr) { motor_band_oben.set(1); }
 void button_motor_oben_pop(void *ptr) { motor_band_oben.set(0); }
@@ -343,7 +359,7 @@ void button_motor_unten_push(void *ptr) { motor_band_unten.set(1); }
 void button_motor_unten_pop(void *ptr) { motor_band_unten.set(0); }
 void button_entlueften_ds_push(void *ptr) {
   zylinder_entlueften.toggle();
-  nex_state_entlueftung = !nex_state_entlueftung;
+  nex_state_air_release = !nex_state_air_release;
 }
 void button_schneiden_push(void *ptr) {
   zylinder_messer.set(1);
@@ -356,11 +372,19 @@ void button_schneiden_pop(void *ptr) {
 void button_schlitten_push(void *ptr) { zylinder_schlitten.set(1); }
 void button_schlitten_pop(void *ptr) { zylinder_schlitten.set(0); }
 
-// TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE:
-void button_upper_slider_left_push(void *ptr) { decrease_slider_value(upper_strap_feed); }
-void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_strap_feed); }
-void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
-void button_lower_slider_right_push(void *ptr) { increase_slider_value(lower_strap_feed); }
+// TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE ------------------------------------
+void button_upper_slider_left_push(void *ptr) {
+  decrease_slider_value(upper_strap_feed);
+}
+void button_upper_slider_right_push(void *ptr) {
+  increase_slider_value(upper_strap_feed);
+}
+void button_lower_slider_left_push(void *ptr) {
+  decrease_slider_value(lower_strap_feed);
+}
+void button_lower_slider_right_push(void *ptr) {
+  increase_slider_value(lower_strap_feed);
+}
 void increase_slider_value(int eeprom_value_number) {
   long max_value = 200; // [mm]
   long interval = 5;
@@ -384,7 +408,7 @@ void decrease_slider_value(int eeprom_value_number) {
   }
 }
 
-// TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE:
+// TOUCH EVENT FUNCTIONS PAGE 2 - RIGHT SIDE -----------------------------------
 void button_reset_shorttime_counter_push(void *ptr) {
   eeprom_counter.set_value(shorttime_counter, 0);
 
@@ -396,7 +420,7 @@ void button_reset_shorttime_counter_pop(void *ptr) {
   nex_reset_button_timeout.set_flag_activated(0);
 }
 
-// PAGE CHANGING EVENTS (TRIGGER UPDATE OF ALL DISPLAY ELEMENTS):
+// PAGE CHANGING EVENTS (TRIGGER UPDATE OF ALL DISPLAY ELEMENTS) ---------------
 void page_0_push(void *ptr) { nex_current_page = 0; }
 void page_1_push(void *ptr) {
   nex_current_page = 1;
@@ -406,12 +430,12 @@ void page_1_push(void *ptr) {
   // REFRESH BUTTON STATES:
   nex_prev_cycle_step = !state_controller.get_current_step();
   nex_state_step_mode = true;
-  nex_state_entlueftung = 0;
-  nex_state_motorbremse = 0;
-  nex_state_motor_oben = 0;
-  nex_state_schlitten = 0;
-  nex_state_messer = 0;
-  nex_state_motor_unten = 0;
+  nex_state_air_release = 0;
+  nex_state_motor_brake = 0;
+  nex_state_upper_motor = 0;
+  nex_state_sledge = 0;
+  nex_state_blade = 0;
+  nex_state_lower_motor = 0;
   nex_state_machine_running = 0;
 }
 void page_2_push(void *ptr) {
@@ -421,11 +445,14 @@ void page_2_push(void *ptr) {
 void update_field_values_page_2() {
   nex_upper_strap_feed = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
   nex_lower_strap_feed = eeprom_counter.get_value(nex_lower_strap_feed) - 1;
-  nex_prev_shorttime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
-  nex_prev_longtime_counter = eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_prev_shorttime_counter =
+      eeprom_counter.get_value(nex_upper_strap_feed) - 1;
+  nex_prev_longtime_counter =
+      eeprom_counter.get_value(nex_upper_strap_feed) - 1;
 }
 
-//******************************************************************************
+// DECLARE DISPLAY EVENT LISTENERS *********************************************
+
 void setup_display_event_callback_functions() {
   // PAGE 0 PUSH ONLY:
   nex_page_0.attachPush(page_0_push);
@@ -436,19 +463,19 @@ void setup_display_event_callback_functions() {
   button_reset_cycle.attachPush(button_reset_cycle_push);
   button_previous_step.attachPush(button_stepback_push);
   button_next_step.attachPush(button_next_step_push);
-  button_modeswitch_ds.attachPush(button_modeswitch_ds_push);
+  switch_step_auto_mode.attachPush(button_modeswitch_ds_push);
   button_traffic_light.attachPush(button_play_pause_ds_push);
-  button_klemmen_ds.attachPush(button_klemmen_ds_pop);
-  button_entlueften_ds.attachPush(button_entlueften_ds_push);
+  switch_motor_brake.attachPush(button_klemmen_ds_pop);
+  switch_air_release.attachPush(button_entlueften_ds_push);
   // PAGE 1 PUSH AND POP:
-  button_motor_oben.attachPush(button_motor_oben_push);
-  button_motor_oben.attachPop(button_motor_oben_pop);
-  button_motor_unten.attachPush(button_motor_unten_push);
-  button_motor_unten.attachPop(button_motor_unten_pop);
-  button_schneiden.attachPush(button_schneiden_push);
-  button_schneiden.attachPop(button_schneiden_pop);
-  button_schlitten.attachPush(button_schlitten_push);
-  button_schlitten.attachPop(button_schlitten_pop);
+  button_upper_motor.attachPush(button_motor_oben_push);
+  button_upper_motor.attachPop(button_motor_oben_pop);
+  button_lower_motor.attachPush(button_motor_unten_push);
+  button_lower_motor.attachPop(button_motor_unten_pop);
+  button_blade.attachPush(button_schneiden_push);
+  button_blade.attachPop(button_schneiden_pop);
+  button_sledge.attachPush(button_schlitten_push);
+  button_sledge.attachPop(button_schlitten_pop);
   // PAGE 2 PUSH ONLY:
   nex_page_2.attachPush(page_2_push);
   button_slider_1_left.attachPush(button_upper_slider_left_push);
@@ -456,12 +483,15 @@ void setup_display_event_callback_functions() {
   button_slider_2_left.attachPush(button_lower_slider_left_push);
   button_slider_2_right.attachPush(button_lower_slider_right_push);
   // PAGE 2 PUSH AND POP:
-  button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
+  button_reset_shorttime_counter.attachPush(
+      button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
-//******************************************************************************
+
+// DISPLAY SETUP ***************************************************************
+
 void nextion_display_setup() {
-  //*****************************************************************************
+
   Serial2.begin(9600);
 
   // RESET NEXTION DISPLAY: (refresh display after PLC restart)
@@ -476,7 +506,9 @@ void nextion_display_setup() {
   sendCommand("page 1"); // switch display to page x
   send_to_nextion();
 }
-//******************************************************************************
+
+// DISPLAY LOOP ****************************************************************
+
 void nextion_display_loop() {
   //****************************************************************************
   nexLoop(nex_listen_list); // check for any touch event
@@ -491,9 +523,9 @@ void nextion_display_loop() {
     display_loop_page_2_right_side();
   }
 }
-//------------------------------------------------------------------------------
 
-// DIPLAY LOOP FUNCTIONS PAGE 1: -----------------------------------------------
+// DISPLAY LOOP PAGE 1 LEFT SIDE: -----------------------------------------------
+
 void display_loop_page_1_left_side() {
 
   update_cycle_name();
@@ -501,8 +533,7 @@ void display_loop_page_1_left_side() {
 
   // UPDATE SWITCHSTATE "STEP"/"AUTO"-MODE:
   if (nex_state_step_mode != state_controller.is_in_step_mode()) {
-    Serial2.print("click bt1,1");
-    send_to_nextion();
+    toggle_ds_switch("bt1");
     nex_state_step_mode = state_controller.is_in_step_mode();
   }
 }
@@ -532,93 +563,81 @@ void update_traffic_light_field() {
   }
 }
 
-void set_traffic_light_field_text(String text) { display_text_in_field(text, "b8"); }
+void set_traffic_light_field_text(String text) {
+  display_text_in_field(text, "b8");
+}
 
 void set_traffic_light_field_color(String color) {
   Serial2.print("b8.bco=" + color);
   send_to_nextion();
 }
 
-void toggle_ds_switch(String button) {
-  Serial2.print("click " + button + ",1");
-  send_to_nextion();
-}
-void set_momentary_button_high_or_low(String button, bool state) {
-  Serial2.print("click " + button + "," + state);
-  send_to_nextion();
-}
+// DISPLAY LOOP PAGE 1 RIGHT SIDE: ---------------------------------------------
 
-//------------------------------------------------------------------------------
 void display_loop_page_1_right_side() {
 
-  if (zylinder_entlueften.get_state() != nex_state_entlueftung) {
+  // UPDATE SWITCH:
+  if (zylinder_entlueften.get_state() != nex_state_air_release) {
     toggle_ds_switch("bt3");
-
-    nex_state_entlueftung = !nex_state_entlueftung;
+    nex_state_air_release = !nex_state_air_release;
   }
 
-  // UPDATE SWITCHBUTTON (dual state):
-  if (motor_bremse_oben.get_state() != nex_state_motorbremse) {
-    Serial2.print("click bt5,1");
-    send_to_nextion();
-    nex_state_motorbremse = !nex_state_motorbremse;
+  // UPDATE SWITCH:
+  if (motor_bremse_oben.get_state() != nex_state_motor_brake) {
+    toggle_ds_switch("bt5");
+    nex_state_motor_brake = !nex_state_motor_brake;
   }
 
-  // UPDATE BUTTON (momentary):
-  if (zylinder_schlitten.get_state() != nex_state_schlitten) {
+  // UPDATE BUTTON:
+  if (zylinder_schlitten.get_state() != nex_state_sledge) {
     bool state = zylinder_schlitten.get_state();
     String button = "b6";
     set_momentary_button_high_or_low(button, state);
-    nex_state_schlitten = zylinder_schlitten.get_state();
+    nex_state_sledge = zylinder_schlitten.get_state();
   }
 
-  // UPDATE BUTTON (momentary):
-  if (motor_band_oben.get_state() != nex_state_motor_oben) {
-    if (motor_band_oben.get_state()) {
-      Serial2.print("click b4,1");
-    } else {
-      Serial2.print("click b4,0");
-    }
-    send_to_nextion();
-    nex_state_motor_oben = motor_band_oben.get_state();
+  // UPDATE BUTTON:
+  if (motor_band_oben.get_state() != nex_state_upper_motor) {
+    bool state = motor_band_oben.get_state();
+    String button = "b4";
+    set_momentary_button_high_or_low(button, state);
+    nex_state_upper_motor = motor_band_oben.get_state();
   }
 
-  // UPDATE BUTTON (momentary):
-  if (zylinder_messer.get_state() != nex_state_messer) {
-    if (zylinder_messer.get_state()) {
-      Serial2.print("click b5,1");
-    } else {
-      Serial2.print("click b5,0");
-    }
-    send_to_nextion();
-    nex_state_messer = zylinder_messer.get_state();
+  // UPDATE BUTTON:
+  if (zylinder_messer.get_state() != nex_state_blade) {
+    bool state = zylinder_messer.get_state();
+    String button = "b5";
+    set_momentary_button_high_or_low(button, state);
+    nex_state_blade = zylinder_messer.get_state();
   }
 
-  // UPDATE BUTTON (momentary):
-  if (motor_band_unten.get_state() != nex_state_motor_unten) {
-    if (motor_band_unten.get_state()) {
-      Serial2.print("click b3,1");
-    } else {
-      Serial2.print("click b3,0");
-    }
-    send_to_nextion();
-    nex_state_motor_unten = motor_band_unten.get_state();
+  // UPDATE BUTTON:
+  if (motor_band_unten.get_state() != nex_state_lower_motor) {
+    bool state = motor_band_unten.get_state();
+    String button = "b3";
+    set_momentary_button_high_or_low(button, state);
+    nex_state_lower_motor = motor_band_unten.get_state();
   }
 }
-// DIPLAY LOOP FUNCTIONS PAGE 2: -----------------------------------------------
+
+// DIPLAY LOOP PAGE 2 LEFT SIDE: -----------------------------------------------
+
 void display_loop_page_2_left_side() {
   update_upper_slider_value();
   update_lower_slider_value();
 }
 void update_upper_slider_value() {
   if (eeprom_counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
-    display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"), "t4");
+    display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"),
+                          "t4");
     nex_upper_strap_feed = eeprom_counter.get_value(upper_strap_feed);
   }
 }
 void update_lower_slider_value() {
   if (eeprom_counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
-    display_text_in_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"), "t2");
+    display_text_in_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"),
+                          "t2");
     nex_lower_strap_feed = eeprom_counter.get_value(lower_strap_feed);
   }
 }
@@ -629,6 +648,7 @@ String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix) {
   return suffixed_string;
 }
 
+// DIPLAY LOOP PAGE 2 RIGHT SIDE: ----------------------------------------------
 void display_loop_page_2_right_side() {
   update_upper_counter_value();
   update_lower_counter_value();
@@ -636,14 +656,17 @@ void display_loop_page_2_right_side() {
 }
 void update_upper_counter_value() {
   if (nex_prev_longtime_counter != eeprom_counter.get_value(longtime_counter)) {
-    display_text_in_field(String(eeprom_counter.get_value(longtime_counter)), "t10");
+    display_text_in_field(String(eeprom_counter.get_value(longtime_counter)),
+                          "t10");
     nex_prev_longtime_counter = eeprom_counter.get_value(longtime_counter);
   }
 }
 void update_lower_counter_value() {
   // UPDATE LOWER COUNTER:
-  if (nex_prev_shorttime_counter != eeprom_counter.get_value(shorttime_counter)) {
-    display_text_in_field(String(eeprom_counter.get_value(shorttime_counter)), "t12");
+  if (nex_prev_shorttime_counter !=
+      eeprom_counter.get_value(shorttime_counter)) {
+    display_text_in_field(String(eeprom_counter.get_value(shorttime_counter)),
+                          "t12");
     nex_prev_shorttime_counter = eeprom_counter.get_value(shorttime_counter);
   }
 }
@@ -656,9 +679,9 @@ void reset_lower_counter_value() {
     }
   }
 }
-//******************************************************************************
+
 // CLASSES FOR THE MAIN CYCLE STEPS ********************************************
-//******************************************************************************
+
 // TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
 // crimp (tool can work)
 // release air
@@ -752,10 +775,9 @@ public:
 private:
 }; */
 //------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
 
-//******************************************************************************
+// MAIN SETUP ******************************************************************
+
 void setup() {
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
@@ -779,7 +801,9 @@ void setup() {
   //------------------------------------------------
   nextion_display_setup();
 }
-//******************************************************************************
+
+// MAIN LOOP *******************************************************************
+
 void loop() {
 
   // UPDDATE DISPLAY:
@@ -821,4 +845,5 @@ void loop() {
     print_interval_timeout.reset_time();
   }
 }
-//******************************************************************************
+
+// END OF PROGRAM **************************************************************
