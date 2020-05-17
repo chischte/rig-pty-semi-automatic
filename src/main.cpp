@@ -9,7 +9,9 @@
  * ****************************************************************************
  * TODO:
  * 
+ * rename all ds buttons to switch
  * UPDATE TRAFFIC LIGHT ONLY WHEN STATE CHANGED
+ * Only go to sleep mode from "crimpen" screen
  * Refactor star- an dashlines, update code guidelines
  * Implement stepper motor driver library and code
  * eeprom counter is not a counter but a rememberer!
@@ -537,12 +539,21 @@ void set_traffic_light_field_color(String color) {
   send_to_nextion();
 }
 
+void toggle_ds_switch(String button) {
+  Serial2.print("click " + button + ",1");
+  send_to_nextion();
+}
+void set_momentary_button_high_or_low(String button, bool state) {
+  Serial2.print("click " + button + "," + state);
+  send_to_nextion();
+}
+
 //------------------------------------------------------------------------------
 void display_loop_page_1_right_side() {
-  // UPDATE SWITCHBUTTON (dual state):
+
   if (zylinder_entlueften.get_state() != nex_state_entlueftung) {
-    Serial2.print("click bt3,1");
-    send_to_nextion();
+    toggle_ds_switch("bt3");
+
     nex_state_entlueftung = !nex_state_entlueftung;
   }
 
@@ -555,12 +566,9 @@ void display_loop_page_1_right_side() {
 
   // UPDATE BUTTON (momentary):
   if (zylinder_schlitten.get_state() != nex_state_schlitten) {
-    if (zylinder_schlitten.get_state()) {
-      Serial2.print("click b6,1");
-    } else {
-      Serial2.print("click b6,0");
-    }
-    send_to_nextion();
+    bool state = zylinder_schlitten.get_state();
+    String button = "b6";
+    set_momentary_button_high_or_low(button, state);
     nex_state_schlitten = zylinder_schlitten.get_state();
   }
 
