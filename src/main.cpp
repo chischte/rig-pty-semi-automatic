@@ -24,7 +24,7 @@
 
 // INCLUDE HEADERS *************************************************************
 
-//#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
+#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
@@ -81,17 +81,23 @@ EEPROM_Counter counter;
 State_controller state_controller;
 Traffic_light traffic_light;
 
-Cylinder zylinder_schlitten(CONTROLLINO_D3);
-Cylinder zylinder_entlueften(CONTROLLINO_D4);
-Cylinder zylinder_messer(CONTROLLINO_D8);
-Cylinder zylinder_visier(CONTROLLINO_D10);
-Cylinder motor_band_oben(CONTROLLINO_D5);
-Cylinder motor_band_unten(CONTROLLINO_D6);
-Cylinder motor_bremse_oben(CONTROLLINO_D7);
-Cylinder motor_bremse_unten(CONTROLLINO_D9);
+// VISIER D15
+// SCHLITTEN D14
+// SCHLITTEN D13
+// MESSER D12
+
+
+Cylinder zylinder_schlitten(CONTROLLINO_D13);
+Cylinder zylinder_entlueften(CONTROLLINO_D14);
+Cylinder zylinder_messer(CONTROLLINO_D12);
+Cylinder zylinder_visier(CONTROLLINO_D15);
+Cylinder motor_band_oben(CONTROLLINO_D3);
+Cylinder motor_band_unten(CONTROLLINO_D2);
+Cylinder motor_bremse_oben(CONTROLLINO_D1);
+Cylinder motor_bremse_unten(CONTROLLINO_D0);
 
 const byte TEST_SWITCH_PIN = 2; // needed for the temporary pullup
-Debounce test_switch(TEST_SWITCH_PIN);
+Debounce test_switch_mega(TEST_SWITCH_PIN);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
@@ -719,7 +725,7 @@ public:
     motor_band_unten.set(1);
     motor_brake_enable();
 
-    if (test_switch.switchedLow()) {
+    if (test_switch_mega.switchedLow()) {
       traffic_light.set_info_user_do_stuff();
       std::cout << "STEP COMPLETED\n";
       set_completed();
@@ -735,7 +741,7 @@ public:
     return display_text;
   }
   void do_stuff() {
-    if (test_switch.switchedLow()) {
+    if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       traffic_light.set_info_machine_do_stuff();
       set_completed();
@@ -758,7 +764,7 @@ public:
     motor_band_oben.set(0);
     motor_band_unten.set(0);
     motor_brake_disable();
-    if (test_switch.switchedLow()) {
+    if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
       traffic_light.set_info_machine_do_stuff();
@@ -789,7 +795,7 @@ void setup() {
   Serial.begin(115200);
   state_controller.set_auto_mode();
   state_controller.set_machine_stop();
-  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
+  //pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextion_display_setup();

@@ -18,3 +18,5 @@ BXT_STANDARD_RIG/spec.d
 .pio/build/
 
 .vscode/
+
+pinout/~$pinout.xlsx
