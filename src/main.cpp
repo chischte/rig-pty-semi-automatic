@@ -12,20 +12,20 @@
  * ? Implement on "on init" function in abstract class Cycle_step
  * Check if traffic light display updates only when a state change happend
  * Implement stepper motor driver library and code
- * Fix bug traffic light not updating on page change
+ * Fix bug traffic light stuck in start mode
  * eeprom counter is not a counter but a rememberer!
  * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
  * ? Implement sub step possibility
  * ? Implement timeout possibility, if smart, to abstract cycle step class
- * Read:
+ * Read:  
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  */
 
 // INCLUDE HEADERS *************************************************************
 
-#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
+//#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
 #include <EEPROM_Counter.h> //      https://github.com/chischte/eeprom-counter-library
@@ -85,7 +85,6 @@ Traffic_light traffic_light;
 // SCHLITTEN D14
 // SCHLITTEN D13
 // MESSER D12
-
 
 Cylinder zylinder_schlitten(CONTROLLINO_D13);
 Cylinder zylinder_entlueften(CONTROLLINO_D14);
@@ -453,7 +452,6 @@ void page_0_push(void *ptr) { nex_current_page = 0; }
 void page_1_push(void *ptr) {
   nex_current_page = 1;
   hide_info_field();
-  update_traffic_light_field();
 
   // REFRESH BUTTON STATES:
   nex_prev_cycle_step = !state_controller.get_current_step();
@@ -465,6 +463,7 @@ void page_1_push(void *ptr) {
   nex_state_blade = 0;
   nex_state_lower_motor = 0;
   nex_state_machine_running = 0;
+  traffic_light.set_info_has_changed();
 }
 void page_2_push(void *ptr) {
   nex_current_page = 2;
@@ -795,7 +794,7 @@ void setup() {
   Serial.begin(115200);
   state_controller.set_auto_mode();
   state_controller.set_machine_stop();
-  //pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
+  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextion_display_setup();
