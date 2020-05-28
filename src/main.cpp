@@ -9,10 +9,11 @@
  * *****************************************************************************
  * TODO:
  * 
+ * 
  * ? Implement on "on init" function in abstract class Cycle_step
  * Check if traffic light display updates only when a state change happend
  * Implement stepper motor driver library and code
- * Fix bug traffic light stuck in start mode
+ * Delete AccelStepper library from arduino_sketch folder
  * eeprom counter is not a counter but a rememberer!
  * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
@@ -26,6 +27,7 @@
 
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
 //#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
+#include <AccelStepper.h> //        PIO library
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
 #include <EEPROM_Counter.h> //      https://github.com/chischte/eeprom-counter-library
@@ -60,7 +62,6 @@ void reset_lower_counter_value();
 void increase_slider_value(int eeprom_value_number);
 void decrease_slider_value(int eeprom_value_number);
 void update_field_values_page_2();
-void set_play_pause_button_pause();
 String get_display_string();
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix);
 
@@ -234,7 +235,6 @@ void manage_traffic_light() {
   // GO TO SLEEP:
   if (traffic_light.is_in_user_do_stuff_state() &&
       brake_timeout.has_timed_out()) {
-    Serial.println("HAUDI GANG");
     traffic_light.set_info_sleep();
   }
   // WAKE UP:
@@ -792,7 +792,7 @@ void setup() {
   counter.setup(0, 1023, counter_no_of_values);
   //------------------------------------------------
   Serial.begin(115200);
-  state_controller.set_auto_mode();
+  state_controller.set_auto_mode(); // there is no step mode in this program
   state_controller.set_machine_stop();
   pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
   Serial.println("EXIT SETUP");
