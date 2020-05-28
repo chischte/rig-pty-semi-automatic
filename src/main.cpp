@@ -86,14 +86,14 @@ Traffic_light traffic_light;
 // SCHLITTEN D13
 // MESSER D12
 
-Cylinder zylinder_schlitten(CONTROLLINO_D13);
-Cylinder zylinder_entlueften(CONTROLLINO_D14);
-Cylinder zylinder_messer(CONTROLLINO_D12);
-Cylinder zylinder_visier(CONTROLLINO_D15);
-Cylinder motor_band_oben(CONTROLLINO_D3);
-Cylinder motor_band_unten(CONTROLLINO_D2);
-Cylinder motor_bremse_oben(CONTROLLINO_D1);
-Cylinder motor_bremse_unten(CONTROLLINO_D0);
+Cylinder cylinder_sledge(CONTROLLINO_D13);
+Cylinder cylinder_vent(CONTROLLINO_D14);
+Cylinder cylinder_blade(CONTROLLINO_D12);
+Cylinder cylinder_frontclap(CONTROLLINO_D15);
+Cylinder motor_upper_strap(CONTROLLINO_D3);
+Cylinder motor_lower_strap(CONTROLLINO_D2);
+Cylinder motor_upper_brake(CONTROLLINO_D1);
+Cylinder motor_lower_brake(CONTROLLINO_D0);
 
 const byte TEST_SWITCH_PIN = 2; // needed for the temporary pullup
 Debounce test_switch_mega(TEST_SWITCH_PIN);
@@ -175,12 +175,12 @@ std::vector<Cycle_step *> cycle_steps;
 // NON NEXTION FUNCTIONS *******************************************************
 
 void reset_cylinder_states() {
-  zylinder_schlitten.set(0);
-  motor_band_oben.set(0);
-  motor_band_unten.set(0);
-  motor_bremse_oben.set(0);
-  zylinder_messer.set(0);
-  zylinder_entlueften.set(0);
+  cylinder_sledge.set(0);
+  motor_upper_strap.set(0);
+  motor_lower_strap.set(0);
+  motor_upper_brake.set(0);
+  cylinder_blade.set(0);
+  cylinder_vent.set(0);
 }
 
 void stop_machine() {
@@ -198,18 +198,18 @@ void reset_machine() {
 }
 
 void motor_brake_enable() {
-  motor_bremse_oben.set(1);
-  motor_bremse_unten.set(1);
+  motor_upper_brake.set(1);
+  motor_lower_brake.set(1);
   brake_timeout.reset_time();
 }
 
 void motor_brake_disable() {
-  motor_bremse_oben.set(0);
-  motor_bremse_oben.set(0);
+  motor_upper_brake.set(0);
+  motor_upper_brake.set(0);
 }
 
 void motor_brake_toggle() {
-  if (motor_bremse_oben.get_state()) {
+  if (motor_upper_brake.get_state()) {
     motor_brake_disable();
   } else {
     motor_brake_enable();
@@ -223,11 +223,11 @@ void monitor_motor_brake() {
 }
 
 void print_cylinder_states() {
-  Serial.println("ZYLINDER_STATES: " + String(zylinder_entlueften.get_state()) +
-                 zylinder_messer.get_state() + zylinder_visier.get_state() +
-                 zylinder_schlitten.get_state() + motor_band_oben.get_state() +
-                 motor_band_unten.get_state() + motor_bremse_oben.get_state() +
-                 motor_bremse_unten.get_state());
+  Serial.println("ZYLINDER_STATES: " + String(cylinder_vent.get_state()) +
+                 cylinder_blade.get_state() + cylinder_frontclap.get_state() +
+                 cylinder_sledge.get_state() + motor_upper_strap.get_state() +
+                 motor_lower_strap.get_state() + motor_upper_brake.get_state() +
+                 motor_lower_brake.get_state());
 }
 
 void manage_traffic_light() {
@@ -366,34 +366,34 @@ void switch_motor_brake_push(void *ptr) {
   nex_state_motor_brake = !nex_state_motor_brake;
 }
 void button_motor_oben_push(void *ptr) { //
-  motor_band_oben.set(1);
+  motor_upper_strap.set(1);
 }
 void button_motor_oben_pop(void *ptr) { //
-  motor_band_oben.set(0);
+  motor_upper_strap.set(0);
 }
 void button_motor_unten_push(void *ptr) { //
-  motor_band_unten.set(1);
+  motor_lower_strap.set(1);
 }
 void button_motor_unten_pop(void *ptr) { //
-  motor_band_unten.set(0);
+  motor_lower_strap.set(0);
 }
 void switch_air_release_push(void *ptr) {
-  zylinder_entlueften.toggle();
+  cylinder_vent.toggle();
   nex_state_air_release = !nex_state_air_release;
 }
 void button_schneiden_push(void *ptr) {
-  zylinder_messer.set(1);
-  zylinder_visier.set(0);
+  cylinder_blade.set(1);
+  cylinder_frontclap.set(0);
 }
 void button_schneiden_pop(void *ptr) {
-  zylinder_messer.set(0);
-  zylinder_visier.set(1);
+  cylinder_blade.set(0);
+  cylinder_frontclap.set(1);
 }
 void button_schlitten_push(void *ptr) { //
-  zylinder_schlitten.set(1);
+  cylinder_sledge.set(1);
 }
 void button_schlitten_pop(void *ptr) { //
-  zylinder_schlitten.set(0);
+  cylinder_sledge.set(0);
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE ------------------------------------
@@ -602,39 +602,39 @@ void set_traffic_light_field_color(String color) {
 void display_loop_page_1_right_side() {
 
   // UPDATE SWITCHES:
-  if (zylinder_entlueften.get_state() != nex_state_air_release) {
+  if (cylinder_vent.get_state() != nex_state_air_release) {
     toggle_ds_switch("bt3");
     nex_state_air_release = !nex_state_air_release;
   }
-  if (motor_bremse_oben.get_state() != nex_state_motor_brake) {
+  if (motor_upper_brake.get_state() != nex_state_motor_brake) {
     toggle_ds_switch("bt5");
     nex_state_motor_brake = !nex_state_motor_brake;
   }
 
   // UPDATE BUTTONS:
-  if (zylinder_schlitten.get_state() != nex_state_sledge) {
-    bool state = zylinder_schlitten.get_state();
+  if (cylinder_sledge.get_state() != nex_state_sledge) {
+    bool state = cylinder_sledge.get_state();
     String button = "b6";
     set_momentary_button_high_or_low(button, state);
-    nex_state_sledge = zylinder_schlitten.get_state();
+    nex_state_sledge = cylinder_sledge.get_state();
   }
-  if (motor_band_oben.get_state() != nex_state_upper_motor) {
-    bool state = motor_band_oben.get_state();
+  if (motor_upper_strap.get_state() != nex_state_upper_motor) {
+    bool state = motor_upper_strap.get_state();
     String button = "b4";
     set_momentary_button_high_or_low(button, state);
-    nex_state_upper_motor = motor_band_oben.get_state();
+    nex_state_upper_motor = motor_upper_strap.get_state();
   }
-  if (zylinder_messer.get_state() != nex_state_blade) {
-    bool state = zylinder_messer.get_state();
+  if (cylinder_blade.get_state() != nex_state_blade) {
+    bool state = cylinder_blade.get_state();
     String button = "b5";
     set_momentary_button_high_or_low(button, state);
-    nex_state_blade = zylinder_messer.get_state();
+    nex_state_blade = cylinder_blade.get_state();
   }
-  if (motor_band_unten.get_state() != nex_state_lower_motor) {
-    bool state = motor_band_unten.get_state();
+  if (motor_lower_strap.get_state() != nex_state_lower_motor) {
+    bool state = motor_lower_strap.get_state();
     String button = "b3";
     set_momentary_button_high_or_low(button, state);
-    nex_state_lower_motor = motor_band_unten.get_state();
+    nex_state_lower_motor = motor_lower_strap.get_state();
   }
 }
 
@@ -716,12 +716,12 @@ public:
     return display_text;
   }
   void do_stuff() {
-    zylinder_entlueften.set(1);
-    zylinder_messer.set(1);
-    zylinder_visier.set(1);
-    zylinder_schlitten.set(1);
-    motor_band_oben.set(1);
-    motor_band_unten.set(1);
+    cylinder_vent.set(1);
+    cylinder_blade.set(1);
+    cylinder_frontclap.set(1);
+    cylinder_sledge.set(1);
+    motor_upper_strap.set(1);
+    motor_lower_strap.set(1);
     motor_brake_enable();
 
     if (test_switch_mega.switchedLow()) {
@@ -756,12 +756,12 @@ public:
     return display_text;
   }
   void do_stuff() {
-    zylinder_entlueften.set(0);
-    zylinder_messer.set(0);
-    zylinder_visier.set(0);
-    zylinder_schlitten.set(0);
-    motor_band_oben.set(0);
-    motor_band_unten.set(0);
+    cylinder_vent.set(0);
+    cylinder_blade.set(0);
+    cylinder_frontclap.set(0);
+    cylinder_sledge.set(0);
+    motor_upper_strap.set(0);
+    motor_lower_strap.set(0);
     motor_brake_disable();
     if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
