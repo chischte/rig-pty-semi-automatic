@@ -10,6 +10,7 @@
  * TODO:
  * 
  * 
+ * FIX BUG MACHINE SOMETIMES STUCK IN START SCREEN, TRAFFIC LIGHT NOT SWITCHING
  * ? Implement on "on init" function in abstract class Cycle_step
  * Check if traffic light display updates only when a state change happend
  * Implement stepper motor driver library and code
@@ -215,14 +216,14 @@ void reset_machine() {
 }
 
 void motor_enable_and_brake_enable() {
-  digitalWrite(UPPER_MOTOR_ENABLE_PIN, HIGH);
-  digitalWrite(LOWER_MOTOR_ENABLE_PIN, HIGH);
+  motor_upper_brake.set(1);
+  motor_lower_brake.set(1);
   motor_enable_and_brake_timeout.reset_time();
 }
 
 void motor_enable_and_brake_disable() {
-  digitalWrite(UPPER_MOTOR_ENABLE_PIN, LOW);
-  digitalWrite(LOWER_MOTOR_ENABLE_PIN, LOW);
+  motor_upper_brake.set(0);
+  motor_lower_brake.set(0);
 }
 
 void motor_enable_and_brake_toggle() {
@@ -367,6 +368,7 @@ void button_traffic_light_push(void *ptr) {
 
   if (traffic_light.is_in_start_state()) {
     state_controller.set_machine_running();
+    Serial.println("MACHINE SHOULD RUN NOW");
     nex_state_machine_running = !nex_state_machine_running;
   }
   if (traffic_light.is_in_sleep_state()) {
@@ -718,79 +720,90 @@ void reset_lower_counter_value() {
 
 // CLASSES FOR THE MAIN CYCLE STEPS ********************************************
 
-// TODO: WRITE CLASSES FOR MAIN CYCLE STEPS:
-// crimp (tool can work)
-// release air
-// release brake
-// move sledge back
-// cut (open gate, then cut))S
-// feed_upper_strap
-// feed_lower_strap
 //------------------------------------------------------------------------------
-class Feed_upper_strap : public Cycle_step {
-  String get_display_text() { return "BAND OBEN"; }
+class User_do_stuff : public Cycle_step {
+  String get_display_text() { return "SPANNEN UND CRIMPEN"; }
 
   void do_initial_stuff() {
-    std::cout << "DID INITIAL STUFF\n";
-    start_upper_motor();
-    stop_lower_motor();
-    cylinder_vent.set(1);
-    cylinder_blade.set(1);
-    cylinder_frontclap.set(1);
-    cylinder_sledge.set(1);
+    motor_enable_and_brake_enable();
+    traffic_light.set_info_user_do_stuff();
+    Serial.println("DID INITIAL STUFF STEP 1");
   }
   void do_loop_stuff() {
     if (test_switch_mega.switchedLow()) {
-      traffic_light.set_info_user_do_stuff();
       std::cout << "STEP COMPLETED\n";
       set_loop_completed();
     }
   }
 };
-// //------------------------------------------------------------------------------
-// class Feed_lower_strap : public Cycle_step {
-// public:
-//   char *get_display_text() {
-//     char *display_text = (char *)malloc(20);
-//     strcpy(display_text, "BAND UNTEN");
-//     return display_text;
-//   }
-//   void do_stuff() {
-//     stop_upper_motor();
-//     start_lower_motor();
-//     if (test_switch_mega.switchedLow()) {
-//       std::cout << "STEP COMPLETED\n";
-//       traffic_light.set_info_machine_do_stuff();
-//       set_loop_completed();
-//     }
-//   }
-// };
-// //------------------------------------------------------------------------------
-// class Brake : public Cycle_step {
-// public:
-//   char *get_display_text() {
-//     char *display_text = (char *)malloc(20);
-//     strcpy(display_text, "BREMSEN");
-//     return display_text;
-//   }
-//   void do_initial_stuff()
-//   void do_loop_stuff() {
+//------------------------------------------------------------------------------
+class Release_air : public Cycle_step {
+  String get_display_text() { return "LUFT ABLASSEN"; }
 
-//     cylinder_vent.set(0);
-//     cylinder_blade.set(0);
-//     cylinder_frontclap.set(0);
-//     cylinder_sledge.set(0);
-//     //motor_lower_strap.set(0);
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    start_upper_motor();
+  }
+  void do_loop_stuff() {
+    if (test_switch_mega.switchedLow()) {
+      std::cout << "STEP COMPLETED\n";
+      set_loop_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Release_brake : public Cycle_step {
+  String get_display_text() { return "BREMSE LOESEN"; }
 
-//     if (test_switch_mega.switchedLow()) {
-//       std::cout << "STEP COMPLETED\n";
-//       set_loop_completed();
-//       traffic_light.set_info_machine_do_stuff();
-//       counter.count_one_up(longtime_counter);
-//       counter.count_one_up(shorttime_counter);
-//     }
-//   }
-// };
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    stop_upper_motor();
+  }
+  void do_loop_stuff() {
+    if (test_switch_mega.switchedLow()) {
+      std::cout << "STEP COMPLETED\n";
+      set_loop_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Sledge_back : public Cycle_step {
+  String get_display_text() { return "ZURUECKFAHREN"; }
+
+  void do_initial_stuff() { traffic_light.set_info_machine_do_stuff(); }
+  void do_loop_stuff() {
+    if (test_switch_mega.switchedLow()) {
+      std::cout << "STEP COMPLETED\n";
+      set_loop_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Cut_strap : public Cycle_step {
+  String get_display_text() { return "SCHNEIDEN"; }
+
+  void do_initial_stuff() { traffic_light.set_info_machine_do_stuff(); }
+  void do_loop_stuff() {
+    if (test_switch_mega.switchedLow()) {
+      std::cout << "STEP COMPLETED\n";
+      set_loop_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Feed_straps : public Cycle_step {
+  String get_display_text() { return "BAND VORSCHIEBEN"; }
+
+  void do_initial_stuff() { traffic_light.set_info_machine_do_stuff(); }
+  void do_loop_stuff() {
+    if (test_switch_mega.switchedLow()) {
+      std::cout << "STEP COMPLETED\n";
+      set_loop_completed();
+    }
+  }
+};
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
 // STEPPER MOTOR SETUP *********************************************************
@@ -825,8 +838,12 @@ void setup() {
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
-  cycle_steps.push_back(new Feed_upper_strap);
-  //cycle_steps.push_back(new Feed_lower_strap);
+  cycle_steps.push_back(new User_do_stuff);
+  cycle_steps.push_back(new Release_air);
+  cycle_steps.push_back(new Release_brake);
+  cycle_steps.push_back(new Sledge_back);
+  cycle_steps.push_back(new Cut_strap);
+  cycle_steps.push_back(new Feed_straps);
   //cycle_steps.push_back(new Brake);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
