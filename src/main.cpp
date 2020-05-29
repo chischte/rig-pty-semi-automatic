@@ -598,7 +598,7 @@ void update_cycle_name() {
 
 String get_display_string() {
   int current_step = state_controller.get_current_step();
-  char *display_text_cycle_name = cycle_steps[current_step]->get_display_text();
+  String display_text_cycle_name = cycle_steps[current_step]->get_display_text();
   return display_text_cycle_name;
 }
 
@@ -728,12 +728,8 @@ void reset_lower_counter_value() {
 // feed_lower_strap
 //------------------------------------------------------------------------------
 class Feed_upper_strap : public Cycle_step {
+  String get_display_text() { return "BAND OBEN"; }
 
-  char *get_display_text() {
-    char *display_text = (char *)malloc(20);
-    strcpy(display_text, "BAND OBEN");
-    return display_text;
-  }
   void do_initial_stuff() {
     std::cout << "DID INITIAL STUFF\n";
     start_upper_motor();

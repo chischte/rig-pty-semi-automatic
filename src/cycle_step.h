@@ -20,7 +20,7 @@ public:
 
   // GETTER:
   bool is_completed();
-  virtual char *get_display_text() = 0;
+  virtual String get_display_text() = 0;
 
 private:
   // VARIABLES:
