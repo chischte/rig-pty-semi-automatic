@@ -29,7 +29,7 @@
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
 //#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
 // deactivate input pullup when using controllino
-#include <AccelStepper.h> //        PIO library
+#include <AccelStepper.h> //        PIO library // https://www.airspayce.com/mikem/arduino/AccelStepper
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
 #include <EEPROM_Counter.h> //      https://github.com/chischte/eeprom-counter-library
@@ -78,7 +78,9 @@ enum counter {
 };
 int counter_no_of_values = end_of_counter_enum;
 
-// DECLRE PINS AND OBJECTS FOR THE STEPPER MOTORS ******************************
+// DECLARE VARIABLES, PINS AND OBJECTS FOR THE STEPPER MOTORS ******************
+const byte micro_step_factor = 2;
+const byte stepper_direction_factor = 1; // set -1 to change direction
 
 const byte UPPER_MOTOR_STEP_PIN = CONTROLLINO_D0;
 const byte UPPER_MOTOR_DIRECTION_PIN = CONTROLLINO_D1;
@@ -107,12 +109,10 @@ Cylinder cylinder_sledge(CONTROLLINO_D13);
 Cylinder cylinder_vent(CONTROLLINO_D14);
 Cylinder cylinder_blade(CONTROLLINO_D12);
 Cylinder cylinder_frontclap(CONTROLLINO_D15);
-Cylinder motor_upper_strap(CONTROLLINO_D3);
-Cylinder motor_lower_strap(CONTROLLINO_D2);
 Cylinder motor_upper_brake(CONTROLLINO_D1);
 Cylinder motor_lower_brake(CONTROLLINO_D0);
 
-const byte TEST_SWITCH_PIN = 2; // needed for the temporary pullup
+const byte TEST_SWITCH_PIN = 11; // needed for the temporary pullup
 Debounce test_switch_mega(TEST_SWITCH_PIN);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
@@ -193,8 +193,8 @@ std::vector<Cycle_step *> cycle_steps;
 
 void reset_cylinder_states() {
   cylinder_sledge.set(0);
-  motor_upper_strap.set(0);
-  motor_lower_strap.set(0);
+  //motor_upper_strap.set(0);
+  //motor_lower_strap.set(0);
   motor_upper_brake.set(0);
   cylinder_blade.set(0);
   cylinder_vent.set(0);
@@ -214,36 +214,56 @@ void reset_machine() {
   state_controller.set_current_step_to(0);
 }
 
-void motor_brake_enable() {
-  motor_upper_brake.set(1);
-  motor_lower_brake.set(1);
+void motor_enable_and_brake_enable() {
+  digitalWrite(UPPER_MOTOR_ENABLE_PIN, HIGH);
+  digitalWrite(LOWER_MOTOR_ENABLE_PIN, HIGH);
   motor_enable_and_brake_timeout.reset_time();
 }
 
-void motor_brake_disable() {
-  motor_upper_brake.set(0);
-  motor_lower_brake.set(0);
+void motor_enable_and_brake_disable() {
+  digitalWrite(UPPER_MOTOR_ENABLE_PIN, LOW);
+  digitalWrite(LOWER_MOTOR_ENABLE_PIN, LOW);
 }
 
-void motor_brake_toggle() {
+void motor_enable_and_brake_toggle() {
   if (motor_upper_brake.get_state()) {
-    motor_brake_disable();
+    motor_enable_and_brake_disable();
   } else {
-    motor_brake_enable();
+    motor_enable_and_brake_enable();
   }
 }
 
-void monitor_motor_brake() {
+void monitor_motor_enable_and_brake() {
   if (motor_enable_and_brake_timeout.has_timed_out()) {
-    motor_brake_disable();
+    motor_enable_and_brake_disable();
   }
+}
+
+void start_upper_motor() {
+  motor_enable_and_brake_enable();
+  upper_motor.move(99999999 * micro_step_factor * stepper_direction_factor);
+}
+
+void stop_upper_motor() {
+
+  motor_enable_and_brake_enable();
+  upper_motor.move(300 * micro_step_factor * stepper_direction_factor);
+}
+
+void start_lower_motor() {
+  motor_enable_and_brake_enable();
+  lower_motor.move(99999999 * micro_step_factor * stepper_direction_factor);
+}
+
+void stop_lower_motor() {
+  motor_enable_and_brake_enable();
+  lower_motor.move(300 * micro_step_factor * stepper_direction_factor);
 }
 
 void print_cylinder_states() {
   Serial.println("ZYLINDER_STATES: " + String(cylinder_vent.get_state()) +
                  cylinder_blade.get_state() + cylinder_frontclap.get_state() +
-                 cylinder_sledge.get_state() + motor_upper_strap.get_state() +
-                 motor_lower_strap.get_state() + motor_upper_brake.get_state() +
+                 cylinder_sledge.get_state() + motor_upper_brake.get_state() +
                  motor_lower_brake.get_state());
 }
 
@@ -350,7 +370,7 @@ void button_traffic_light_push(void *ptr) {
     nex_state_machine_running = !nex_state_machine_running;
   }
   if (traffic_light.is_in_sleep_state()) {
-    motor_brake_enable(); // wakes the tool up
+    motor_enable_and_brake_enable(); // wakes the tool up
   }
 }
 
@@ -374,20 +394,20 @@ void button_reset_cycle_push(void *ptr) {
 // TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE -----------------------------------
 
 void switch_motor_brake_push(void *ptr) {
-  motor_brake_toggle();
+  motor_enable_and_brake_toggle();
   nex_state_motor_brake = !nex_state_motor_brake;
 }
 void button_motor_oben_push(void *ptr) { //
-  motor_upper_strap.set(1);
+  start_upper_motor();
 }
 void button_motor_oben_pop(void *ptr) { //
-  motor_upper_strap.set(0);
+  stop_upper_motor();
 }
 void button_motor_unten_push(void *ptr) { //
-  motor_lower_strap.set(1);
+  start_lower_motor();
 }
 void button_motor_unten_pop(void *ptr) { //
-  motor_lower_strap.set(0);
+  stop_lower_motor();
 }
 void switch_air_release_push(void *ptr) {
   cylinder_vent.toggle();
@@ -619,11 +639,11 @@ void display_loop_page_1_right_side() {
     set_momentary_button_high_or_low(button, state);
     nex_state_sledge = cylinder_sledge.get_state();
   }
-  if (motor_upper_strap.get_state() != nex_state_upper_motor) {
-    bool state = motor_upper_strap.get_state();
+  if (upper_motor.isRunning() != nex_state_upper_motor) {
+    bool state = upper_motor.isRunning();
     String button = "b4";
     set_momentary_button_high_or_low(button, state);
-    nex_state_upper_motor = motor_upper_strap.get_state();
+    nex_state_upper_motor = upper_motor.isRunning();
   }
   if (cylinder_blade.get_state() != nex_state_blade) {
     bool state = cylinder_blade.get_state();
@@ -631,11 +651,11 @@ void display_loop_page_1_right_side() {
     set_momentary_button_high_or_low(button, state);
     nex_state_blade = cylinder_blade.get_state();
   }
-  if (motor_lower_strap.get_state() != nex_state_lower_motor) {
-    bool state = motor_lower_strap.get_state();
+  if (lower_motor.isRunning() != nex_state_lower_motor) {
+    bool state = lower_motor.isRunning();
     String button = "b3";
     set_momentary_button_high_or_low(button, state);
-    nex_state_lower_motor = motor_lower_strap.get_state();
+    nex_state_lower_motor = lower_motor.isRunning();
   }
 }
 
@@ -715,13 +735,14 @@ public:
     return display_text;
   }
   void do_stuff() {
+    start_upper_motor();
+    stop_lower_motor();
     cylinder_vent.set(1);
     cylinder_blade.set(1);
     cylinder_frontclap.set(1);
     cylinder_sledge.set(1);
-    motor_upper_strap.set(1);
-    motor_lower_strap.set(1);
-    motor_brake_enable();
+    //motor_upper_strap.set(1);
+    //motor_lower_strap.set(1);
 
     if (test_switch_mega.switchedLow()) {
       traffic_light.set_info_user_do_stuff();
@@ -739,6 +760,8 @@ public:
     return display_text;
   }
   void do_stuff() {
+    stop_upper_motor();
+    start_lower_motor();
     if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       traffic_light.set_info_machine_do_stuff();
@@ -755,13 +778,13 @@ public:
     return display_text;
   }
   void do_stuff() {
+
     cylinder_vent.set(0);
     cylinder_blade.set(0);
     cylinder_frontclap.set(0);
     cylinder_sledge.set(0);
-    motor_upper_strap.set(0);
-    motor_lower_strap.set(0);
-    motor_brake_disable();
+    //motor_lower_strap.set(0);
+
     if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_completed();
@@ -785,17 +808,12 @@ void setup_stepper_motors() {
   pinMode(LOWER_MOTOR_ENABLE_PIN, OUTPUT);
 
   // MAX MOTOR PARAMETERS:
-  const byte micro_step_factor = 2;
   long max_motor_speed = 3000 * micro_step_factor; // experimentally determined
   long max_motor_acceleration = 10000 * micro_step_factor; // experimentally determined
   upper_motor.setMaxSpeed(max_motor_speed); // [steps/s]
   upper_motor.setAcceleration(max_motor_acceleration); // [steps/s^2)
   lower_motor.setMaxSpeed(max_motor_speed); // [steps/s]
   lower_motor.setAcceleration(max_motor_acceleration); // [steps/s^2)
-
-  // SET DIRECTION:
-  digitalWrite(UPPER_MOTOR_DIRECTION_PIN, LOW);
-  digitalWrite(LOWER_MOTOR_DIRECTION_PIN, LOW);
 
   // SET MAX ENABLE AND BRAKE TIME:
   motor_enable_and_brake_timeout.set_time(10000); // to prevent overheating
@@ -837,7 +855,7 @@ void loop() {
   nextion_display_loop();
 
   // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
-  monitor_motor_brake();
+  monitor_motor_enable_and_brake();
 
   // RUN STEPPER MOTORS:
   upper_motor.run();
