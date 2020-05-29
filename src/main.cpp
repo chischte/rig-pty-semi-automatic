@@ -728,72 +728,73 @@ void reset_lower_counter_value() {
 // feed_lower_strap
 //------------------------------------------------------------------------------
 class Feed_upper_strap : public Cycle_step {
-public:
+
   char *get_display_text() {
     char *display_text = (char *)malloc(20);
     strcpy(display_text, "BAND OBEN");
     return display_text;
   }
-  void do_stuff() {
+  void do_initial_stuff() {
+    std::cout << "DID INITIAL STUFF\n";
     start_upper_motor();
     stop_lower_motor();
     cylinder_vent.set(1);
     cylinder_blade.set(1);
     cylinder_frontclap.set(1);
     cylinder_sledge.set(1);
-    //motor_upper_strap.set(1);
-    //motor_lower_strap.set(1);
-
+  }
+  void do_loop_stuff() {
     if (test_switch_mega.switchedLow()) {
       traffic_light.set_info_user_do_stuff();
       std::cout << "STEP COMPLETED\n";
-      set_completed();
+      set_loop_completed();
     }
   }
 };
-//------------------------------------------------------------------------------
-class Feed_lower_strap : public Cycle_step {
-public:
-  char *get_display_text() {
-    char *display_text = (char *)malloc(20);
-    strcpy(display_text, "BAND UNTEN");
-    return display_text;
-  }
-  void do_stuff() {
-    stop_upper_motor();
-    start_lower_motor();
-    if (test_switch_mega.switchedLow()) {
-      std::cout << "STEP COMPLETED\n";
-      traffic_light.set_info_machine_do_stuff();
-      set_completed();
-    }
-  }
-};
-//------------------------------------------------------------------------------
-class Brake : public Cycle_step {
-public:
-  char *get_display_text() {
-    char *display_text = (char *)malloc(20);
-    strcpy(display_text, "BREMSEN");
-    return display_text;
-  }
-  void do_stuff() {
+// //------------------------------------------------------------------------------
+// class Feed_lower_strap : public Cycle_step {
+// public:
+//   char *get_display_text() {
+//     char *display_text = (char *)malloc(20);
+//     strcpy(display_text, "BAND UNTEN");
+//     return display_text;
+//   }
+//   void do_stuff() {
+//     stop_upper_motor();
+//     start_lower_motor();
+//     if (test_switch_mega.switchedLow()) {
+//       std::cout << "STEP COMPLETED\n";
+//       traffic_light.set_info_machine_do_stuff();
+//       set_loop_completed();
+//     }
+//   }
+// };
+// //------------------------------------------------------------------------------
+// class Brake : public Cycle_step {
+// public:
+//   char *get_display_text() {
+//     char *display_text = (char *)malloc(20);
+//     strcpy(display_text, "BREMSEN");
+//     return display_text;
+//   }
+//   void do_initial_stuff()
+//   void do_loop_stuff() {
 
-    cylinder_vent.set(0);
-    cylinder_blade.set(0);
-    cylinder_frontclap.set(0);
-    cylinder_sledge.set(0);
-    //motor_lower_strap.set(0);
+//     cylinder_vent.set(0);
+//     cylinder_blade.set(0);
+//     cylinder_frontclap.set(0);
+//     cylinder_sledge.set(0);
+//     //motor_lower_strap.set(0);
 
-    if (test_switch_mega.switchedLow()) {
-      std::cout << "STEP COMPLETED\n";
-      set_completed();
-      traffic_light.set_info_machine_do_stuff();
-      counter.count_one_up(longtime_counter);
-      counter.count_one_up(shorttime_counter);
-    }
-  }
-};
+//     if (test_switch_mega.switchedLow()) {
+//       std::cout << "STEP COMPLETED\n";
+//       set_loop_completed();
+//       traffic_light.set_info_machine_do_stuff();
+//       counter.count_one_up(longtime_counter);
+//       counter.count_one_up(shorttime_counter);
+//     }
+//   }
+// };
 //------------------------------------------------------------------------------
 
 // STEPPER MOTOR SETUP *********************************************************
@@ -829,8 +830,8 @@ void setup() {
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
   cycle_steps.push_back(new Feed_upper_strap);
-  cycle_steps.push_back(new Feed_lower_strap);
-  cycle_steps.push_back(new Brake);
+  //cycle_steps.push_back(new Feed_lower_strap);
+  //cycle_steps.push_back(new Brake);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
   int no_of_cycle_steps = Cycle_step::object_count;
