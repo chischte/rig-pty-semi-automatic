@@ -17,6 +17,7 @@
  * eeprom counter is not a counter but a rememberer!
  * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
+ * Find out why empty constructor of insomnia does not work with default value
  * ? Implement sub step possibility
  * ? Implement timeout possibility, if smart, to abstract cycle step class
  * Read:  
@@ -27,6 +28,7 @@
 
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
 //#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
+// deactivate input pullup when using controllino
 #include <AccelStepper.h> //        PIO library
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
@@ -76,6 +78,20 @@ enum counter {
 };
 int counter_no_of_values = end_of_counter_enum;
 
+// DECLRE PINS AND OBJECTS FOR THE STEPPER MOTORS ******************************
+
+const byte UPPER_MOTOR_STEP_PIN = CONTROLLINO_D0;
+const byte UPPER_MOTOR_DIRECTION_PIN = CONTROLLINO_D1;
+const byte UPPER_MOTOR_ENABLE_PIN = CONTROLLINO_D2;
+AccelStepper upper_motor(1, UPPER_MOTOR_STEP_PIN,
+                         UPPER_MOTOR_DIRECTION_PIN); // 1 = driver mode
+
+const byte LOWER_MOTOR_STEP_PIN = CONTROLLINO_D3;
+const byte LOWER_MOTOR_DIRECTION_PIN = CONTROLLINO_D4;
+const byte LOWER_MOTOR_ENABLE_PIN = CONTROLLINO_D5;
+AccelStepper lower_motor(1, LOWER_MOTOR_STEP_PIN,
+                         LOWER_MOTOR_DIRECTION_PIN); // 1 = driver mode
+
 // GENERATE OBJECTS ************************************************************
 
 EEPROM_Counter counter;
@@ -101,8 +117,8 @@ Debounce test_switch_mega(TEST_SWITCH_PIN);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
+Insomnia motor_enable_and_brake_timeout; // to prevent overheating
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
-Insomnia brake_timeout(5000); // to prevent overheating
 Insomnia print_interval_timeout(500);
 
 // NEXTION DISPLAY OBJECTS *****************************************************
@@ -141,11 +157,11 @@ NexTouch *nex_listen_list[] = { //
     &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle,
     &button_traffic_light, &switch_step_auto_mode,
     // PAGE 1 RIGHT:
-    &button_blade, &switch_motor_brake, &switch_air_release, &button_sledge,
-    &button_upper_motor, &button_lower_motor,
+    &button_blade, &switch_motor_brake, &switch_air_release, &button_sledge, &button_upper_motor,
+    &button_lower_motor,
     // PAGE 2 LEFT:
-    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2,
-    &button_slider_2_left, &button_slider_2_right,
+    &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2, &button_slider_2_left,
+    &button_slider_2_right,
     // PAGE 2 RIGHT:
     &button_reset_shorttime_counter,
     // END OF LISTEN LIST:
@@ -201,12 +217,12 @@ void reset_machine() {
 void motor_brake_enable() {
   motor_upper_brake.set(1);
   motor_lower_brake.set(1);
-  brake_timeout.reset_time();
+  motor_enable_and_brake_timeout.reset_time();
 }
 
 void motor_brake_disable() {
   motor_upper_brake.set(0);
-  motor_upper_brake.set(0);
+  motor_lower_brake.set(0);
 }
 
 void motor_brake_toggle() {
@@ -218,7 +234,7 @@ void motor_brake_toggle() {
 }
 
 void monitor_motor_brake() {
-  if (brake_timeout.has_timed_out()) {
+  if (motor_enable_and_brake_timeout.has_timed_out()) {
     motor_brake_disable();
   }
 }
@@ -233,12 +249,11 @@ void print_cylinder_states() {
 
 void manage_traffic_light() {
   // GO TO SLEEP:
-  if (traffic_light.is_in_user_do_stuff_state() &&
-      brake_timeout.has_timed_out()) {
+  if (traffic_light.is_in_user_do_stuff_state() && motor_enable_and_brake_timeout.has_timed_out()) {
     traffic_light.set_info_sleep();
   }
   // WAKE UP:
-  if (traffic_light.is_in_sleep_state() && !brake_timeout.has_timed_out()) {
+  if (traffic_light.is_in_sleep_state() && !motor_enable_and_brake_timeout.has_timed_out()) {
     traffic_light.set_info_user_do_stuff();
   }
 }
@@ -346,13 +361,10 @@ void switch_step_auto_mode_push(void *ptr) {
 }
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
-    state_controller.set_current_step_to(state_controller.get_current_step() -
-                                         1);
+    state_controller.set_current_step_to(state_controller.get_current_step() - 1);
   }
 }
-void button_next_step_push(void *ptr) {
-  state_controller.switch_to_next_step();
-}
+void button_next_step_push(void *ptr) { state_controller.switch_to_next_step(); }
 void button_reset_cycle_push(void *ptr) {
   state_controller.set_reset_mode(1);
   clear_text_field("t4");
@@ -398,18 +410,10 @@ void button_schlitten_pop(void *ptr) { //
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE ------------------------------------
 
-void button_upper_slider_left_push(void *ptr) {
-  decrease_slider_value(upper_strap_feed);
-}
-void button_upper_slider_right_push(void *ptr) {
-  increase_slider_value(upper_strap_feed);
-}
-void button_lower_slider_left_push(void *ptr) {
-  decrease_slider_value(lower_strap_feed);
-}
-void button_lower_slider_right_push(void *ptr) {
-  increase_slider_value(lower_strap_feed);
-}
+void button_upper_slider_left_push(void *ptr) { decrease_slider_value(upper_strap_feed); }
+void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_strap_feed); }
+void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
+void button_lower_slider_right_push(void *ptr) { increase_slider_value(lower_strap_feed); }
 void increase_slider_value(int eeprom_value_number) {
   long max_value = 200; // [mm]
   long interval = 5;
@@ -508,8 +512,7 @@ void setup_display_event_callback_functions() {
   button_slider_2_left.attachPush(button_lower_slider_left_push);
   button_slider_2_right.attachPush(button_lower_slider_right_push);
   // PAGE 2 PUSH AND POP:
-  button_reset_shorttime_counter.attachPush(
-      button_reset_shorttime_counter_push);
+  button_reset_shorttime_counter.attachPush(button_reset_shorttime_counter_push);
   button_reset_shorttime_counter.attachPop(button_reset_shorttime_counter_pop);
 }
 
@@ -588,9 +591,7 @@ void update_traffic_light_field() {
   }
 }
 
-void set_traffic_light_field_text(String text) {
-  display_text_in_field(text, "b8");
-}
+void set_traffic_light_field_text(String text) { display_text_in_field(text, "b8"); }
 
 void set_traffic_light_field_color(String color) {
   Serial2.print("b8.bco=" + color);
@@ -647,15 +648,13 @@ void display_loop_page_2_left_side() {
 
 void update_upper_slider_value() {
   if (counter.get_value(upper_strap_feed) != nex_upper_strap_feed) {
-    display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"),
-                          "t4");
+    display_text_in_field(add_suffix_to_eeprom_value(upper_strap_feed, "mm"), "t4");
     nex_upper_strap_feed = counter.get_value(upper_strap_feed);
   }
 }
 void update_lower_slider_value() {
   if (counter.get_value(lower_strap_feed) != nex_lower_strap_feed) {
-    display_text_in_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"),
-                          "t2");
+    display_text_in_field(add_suffix_to_eeprom_value(lower_strap_feed, "mm"), "t2");
     nex_lower_strap_feed = counter.get_value(lower_strap_feed);
   }
 }
@@ -774,9 +773,40 @@ public:
 };
 //------------------------------------------------------------------------------
 
-// MAIN SETUP ******************************************************************
+// STEPPER MOTOR SETUP *********************************************************
+void setup_stepper_motors() {
 
+  // PINS:
+  pinMode(UPPER_MOTOR_STEP_PIN, OUTPUT);
+  pinMode(UPPER_MOTOR_DIRECTION_PIN, OUTPUT);
+  pinMode(UPPER_MOTOR_ENABLE_PIN, OUTPUT);
+  pinMode(LOWER_MOTOR_STEP_PIN, OUTPUT);
+  pinMode(LOWER_MOTOR_DIRECTION_PIN, OUTPUT);
+  pinMode(LOWER_MOTOR_ENABLE_PIN, OUTPUT);
+
+  // MAX MOTOR PARAMETERS:
+  const byte micro_step_factor = 2;
+  long max_motor_speed = 3000 * micro_step_factor; // experimentally determined
+  long max_motor_acceleration = 10000 * micro_step_factor; // experimentally determined
+  upper_motor.setMaxSpeed(max_motor_speed); // [steps/s]
+  upper_motor.setAcceleration(max_motor_acceleration); // [steps/s^2)
+  lower_motor.setMaxSpeed(max_motor_speed); // [steps/s]
+  lower_motor.setAcceleration(max_motor_acceleration); // [steps/s^2)
+
+  // SET DIRECTION:
+  digitalWrite(UPPER_MOTOR_DIRECTION_PIN, LOW);
+  digitalWrite(LOWER_MOTOR_DIRECTION_PIN, LOW);
+
+  // SET MAX ENABLE AND BRAKE TIME:
+  motor_enable_and_brake_timeout.set_time(10000); // to prevent overheating
+}
+// MAIN SETUP ******************************************************************
 void setup() {
+  setup_stepper_motors();
+  //------------------------------------------------
+  // SETUP PIN MODES:
+  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
+
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
@@ -794,7 +824,6 @@ void setup() {
   Serial.begin(115200);
   state_controller.set_auto_mode(); // there is no step mode in this program
   state_controller.set_machine_stop();
-  pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextion_display_setup();
@@ -809,6 +838,10 @@ void loop() {
 
   // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
   monitor_motor_brake();
+
+  // RUN STEPPER MOTORS:
+  upper_motor.run();
+  lower_motor.run();
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
