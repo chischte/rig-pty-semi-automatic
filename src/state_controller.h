@@ -20,6 +20,7 @@ public:
   void set_machine_running();
   void set_machine_stop();
   void toggle_machine_running_state();
+  void toggle_step_auto_mode();
   bool machine_is_running();
 
   void switch_to_next_step();

@@ -256,23 +256,22 @@ void stop_lower_motor() {
   lower_motor.move(300 * micro_step_factor * stepper_direction_factor);
 }
 
-long calculate_steps(int mm){
-long numberOfSteps = mm*full_steps_per_mm*micro_step_factor;
-return numberOfSteps;
+long calculate_steps(int mm) {
+  long numberOfSteps = mm * full_steps_per_mm * micro_step_factor;
+  return numberOfSteps;
 }
 
 void feed_upper_strap_in_mm(int mm) {
-  long number_of_steps=calculate_steps(mm);
+  long number_of_steps = calculate_steps(mm);
   motor_enable_and_brake_enable();
   upper_motor.move(number_of_steps * stepper_direction_factor);
 }
 
 void feed_lower_strap_in_mm(int mm) {
-  long number_of_steps=calculate_steps(mm);
+  long number_of_steps = calculate_steps(mm);
   motor_enable_and_brake_enable();
   lower_motor.move(number_of_steps * stepper_direction_factor);
 }
-
 
 void print_cylinder_states() {
   Serial.println("ZYLINDER_STATES: " + String(cylinder_vent.get_state()) +
@@ -282,6 +281,12 @@ void print_cylinder_states() {
 }
 
 void manage_traffic_light() {
+
+  // SHOW START SCREEN:
+  if (!traffic_light.is_in_start_state() && !state_controller.machine_is_running()) {
+    traffic_light.set_info_start();
+  }
+
   // GO TO SLEEP:
   if (traffic_light.is_in_user_do_stuff_state() && motor_enable_and_brake_timeout.has_timed_out()) {
     traffic_light.set_info_sleep();
@@ -390,10 +395,10 @@ void button_traffic_light_push(void *ptr) {
 }
 
 void switch_step_auto_mode_push(void *ptr) {
-  // step modes is not implemented on this machine
-  // make the button being toggled back:
-  nex_state_step_mode = !state_controller.is_in_step_mode();
+  state_controller.toggle_step_auto_mode();
+  nex_state_step_mode = state_controller.is_in_step_mode();
 }
+
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
     state_controller.set_current_step_to(state_controller.get_current_step() - 1);
@@ -795,10 +800,15 @@ class Sledge_back : public Cycle_step {
 class Cut_strap : public Cycle_step {
   String get_display_text() { return "SCHNEIDEN"; }
 
-  void do_initial_stuff() { traffic_light.set_info_machine_do_stuff(); }
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    cylinder_frontclap.set(0);
+  }
   void do_loop_stuff() {
-    if (test_switch_mega.switchedLow()) {
+    cylinder_blade.stroke(1500, 1500);
+    if (cylinder_blade.stroke_completed()) {
       std::cout << "STEP COMPLETED\n";
+      cylinder_frontclap.set(1);
       set_loop_completed();
     }
   }
@@ -807,11 +817,13 @@ class Cut_strap : public Cycle_step {
 class Feed_straps : public Cycle_step {
   String get_display_text() { return "BAND VORSCHIEBEN"; }
 
-  void do_initial_stuff() { traffic_light.set_info_machine_do_stuff();
-  feed_upper_strap_in_mm(counter.get_value(upper_strap_feed));
-  feed_lower_strap_in_mm(counter.get_value(lower_strap_feed));
-   }
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    feed_upper_strap_in_mm(counter.get_value(upper_strap_feed));
+    feed_lower_strap_in_mm(counter.get_value(lower_strap_feed));
+  }
   void do_loop_stuff() {
+
     if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
       set_loop_completed();
@@ -906,7 +918,7 @@ void loop() {
   // IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
   if (state_controller.step_switch_has_happend()) {
     if (state_controller.is_in_step_mode()) {
-      state_controller.set_machine_running(false);
+      state_controller.set_machine_stop();
     }
   }
 
@@ -922,6 +934,7 @@ void loop() {
   // DISPLAY DEBUG INFOMATION:
   long runtime = measure_runtime();
   if (print_interval_timeout.has_timed_out()) {
+    Serial.println(state_controller.machine_is_running());
     //Serial.println(runtime);
     //print_cylinder_states();
     print_interval_timeout.reset_time();
