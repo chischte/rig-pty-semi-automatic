@@ -7,20 +7,14 @@
  * Michael Wettstein
  * May 2020, Zürich
  * *****************************************************************************
+ * RUNTIME:
+ * Measured runtime: about 130 micros
+ * Resulting max stepper frequency: 7700Hz (6000 is sufficient)
+ * *****************************************************************************
  * TODO:
- * 
- * 
- * FIX BUG MACHINE SOMETIMES STUCK IN START SCREEN, TRAFFIC LIGHT NOT SWITCHING
- * ? Implement on "on init" function in abstract class Cycle_step
- * Check if traffic light display updates only when a state change happend
- * Implement stepper motor driver library and code
- * Delete AccelStepper library from arduino_sketch folder
  * eeprom counter is not a counter but a rememberer!
  * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
- * Find out why empty constructor of insomnia does not work with default value
- * ? Implement sub step possibility
- * ? Implement timeout possibility, if smart, to abstract cycle step class
  * Read:  
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  */
@@ -277,6 +271,13 @@ void manage_traffic_light() {
   if (traffic_light.is_in_sleep_state() && !motor_enable_and_brake_timeout.has_timed_out()) {
     traffic_light.set_info_user_do_stuff();
   }
+}
+
+long measure_runtime() {
+  static long previous_micros = micros();
+  long time_elapsed = micros() - previous_micros;
+  previous_micros = micros();
+  return time_elapsed;
 }
 
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
@@ -858,6 +859,7 @@ void setup() {
 
 // MAIN LOOP *******************************************************************
 
+
 void loop() {
 
   // UPDATE DISPLAY:
@@ -897,10 +899,10 @@ void loop() {
   manage_traffic_light();
 
   // DISPLAY DEBUG INFOMATION:
+  long runtime = measure_runtime();
   if (print_interval_timeout.has_timed_out()) {
-    // print_cylinder_states();
-    if (state_controller.machine_is_running()) {
-    }
+    //Serial.println(runtime);
+    //print_cylinder_states();
     print_interval_timeout.reset_time();
   }
 }
