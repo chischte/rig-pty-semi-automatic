@@ -2,25 +2,31 @@
 #define CYCLESTEP_H
 #include <ArduinoSTL.h>
 
-class Cycle_step
-{
+class Cycle_step {
 public:
   // VARIABLES:
   static int object_count;
 
-  // FUNTIONS:
+  // FUNCTIONS:
   Cycle_step();
-  // Every derived class must implement this method:
-  virtual void do_stuff() = 0;
+  void do_stuff();
+  void reset_flags();
+
+  // VIRTUAL FUNCTIONS:
+  virtual void do_initial_stuff() = 0;
+  virtual void do_loop_stuff() = 0;
+
   // SETTER:
-  void set_completed();
+  void set_loop_completed();
+
   // GETTER:
   bool is_completed();
-  virtual char *get_display_text() = 0;
+  virtual String get_display_text() = 0;
 
 private:
   // VARIABLES:
-  bool _completed;
+  bool _loop_completed;
+  bool _innit_completed;
 
   // FUNCTIONS:
   //n.A.

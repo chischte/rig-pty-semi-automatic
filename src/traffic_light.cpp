@@ -63,3 +63,5 @@ bool Traffic_light::info_has_changed() {
   }
   return false;
 }
+
+void Traffic_light::set_info_has_changed() { _info_has_changed = true; }

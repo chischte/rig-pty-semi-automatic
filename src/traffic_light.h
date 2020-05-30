@@ -10,6 +10,7 @@ public:
   void set_info_user_do_stuff();
   void set_info_machine_do_stuff();
   void set_info_sleep();
+  void set_info_has_changed();
 
   bool info_has_changed();
   bool is_in_sleep_state();

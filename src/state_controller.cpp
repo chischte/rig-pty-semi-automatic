@@ -26,6 +26,14 @@ void State_controller::set_machine_stop() { _machine_running = false; }
 
 void State_controller::toggle_machine_running_state() { _machine_running = !_machine_running; }
 
+void State_controller::toggle_step_auto_mode() {
+  if (is_in_auto_mode()) {
+    set_step_mode();
+  } else {
+    set_auto_mode();
+  }
+}
+
 bool State_controller::machine_is_running() {
   bool machineRunning = _machine_running;
   return machineRunning;
