@@ -113,9 +113,10 @@ Debounce test_switch_mega(TEST_SWITCH_PIN);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
 
-Insomnia motor_enable_and_brake_timeout; // to prevent overheating
+Insomnia motor_output_timeout; // to prevent overheating
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
+Insomnia short_cycle_step_delay;
 
 // NEXTION DISPLAY OBJECTS *****************************************************
 
@@ -210,49 +211,49 @@ void reset_machine() {
   state_controller.set_current_step_to(0);
 }
 
-void motor_enable_and_brake_enable() {
+void motor_output_enable() {
   motor_upper_brake.set(1);
   motor_lower_brake.set(1);
-  motor_enable_and_brake_timeout.reset_time();
+  motor_output_timeout.reset_time();
 }
 
-void motor_enable_and_brake_disable() {
+void motor_output_disable() {
   motor_upper_brake.set(0);
   motor_lower_brake.set(0);
 }
 
-void motor_enable_and_brake_toggle() {
+void motor_output_toggle() {
   if (motor_upper_brake.get_state()) {
-    motor_enable_and_brake_disable();
+    motor_output_disable();
   } else {
-    motor_enable_and_brake_enable();
+    motor_output_enable();
   }
 }
 
-void monitor_motor_enable_and_brake() {
-  if (motor_enable_and_brake_timeout.has_timed_out()) {
-    motor_enable_and_brake_disable();
+void monitor_motor_output() {
+  if (motor_output_timeout.has_timed_out()) {
+    motor_output_disable();
   }
 }
 
 void start_upper_motor() {
-  motor_enable_and_brake_enable();
+  motor_output_enable();
   upper_motor.move(99999999 * micro_step_factor * stepper_direction_factor);
 }
 
 void stop_upper_motor() {
 
-  motor_enable_and_brake_enable();
+  motor_output_enable();
   upper_motor.move(300 * micro_step_factor * stepper_direction_factor);
 }
 
 void start_lower_motor() {
-  motor_enable_and_brake_enable();
+  motor_output_enable();
   lower_motor.move(99999999 * micro_step_factor * stepper_direction_factor);
 }
 
 void stop_lower_motor() {
-  motor_enable_and_brake_enable();
+  motor_output_enable();
   lower_motor.move(300 * micro_step_factor * stepper_direction_factor);
 }
 
@@ -263,13 +264,13 @@ long calculate_steps(int mm) {
 
 void feed_upper_strap_in_mm(int mm) {
   long number_of_steps = calculate_steps(mm);
-  motor_enable_and_brake_enable();
+  motor_output_enable();
   upper_motor.move(number_of_steps * stepper_direction_factor);
 }
 
 void feed_lower_strap_in_mm(int mm) {
   long number_of_steps = calculate_steps(mm);
-  motor_enable_and_brake_enable();
+  motor_output_enable();
   lower_motor.move(number_of_steps * stepper_direction_factor);
 }
 
@@ -288,11 +289,11 @@ void manage_traffic_light() {
   }
 
   // GO TO SLEEP:
-  if (traffic_light.is_in_user_do_stuff_state() && motor_enable_and_brake_timeout.has_timed_out()) {
+  if (traffic_light.is_in_user_do_stuff_state() && motor_output_timeout.has_timed_out()) {
     traffic_light.set_info_sleep();
   }
   // WAKE UP:
-  if (traffic_light.is_in_sleep_state() && !motor_enable_and_brake_timeout.has_timed_out()) {
+  if (traffic_light.is_in_sleep_state() && !motor_output_timeout.has_timed_out()) {
     traffic_light.set_info_user_do_stuff();
   }
 }
@@ -304,8 +305,23 @@ long measure_runtime() {
   return time_elapsed;
 }
 
-void reset_flag_of_current_step(){
+void reset_flag_of_current_step() {
   cycle_steps[state_controller.get_current_step()]->reset_flags();
+}
+
+void move_sledge() {
+  cylinder_sledge.set(1);
+  cylinder_vent.set(1);
+}
+
+void block_sledge() {
+  cylinder_sledge.set(0);
+  cylinder_vent.set(1);
+}
+
+void vent_sledge() {
+  cylinder_sledge.set(0);
+  cylinder_vent.set(0);
 }
 
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
@@ -394,7 +410,7 @@ void button_traffic_light_push(void *ptr) {
     nex_state_machine_running = !nex_state_machine_running;
   }
   if (traffic_light.is_in_sleep_state()) {
-    motor_enable_and_brake_enable(); // wakes the tool up
+    motor_output_enable(); // wakes the tool up
   }
 }
 
@@ -425,7 +441,7 @@ void button_reset_cycle_push(void *ptr) {
 // TOUCH EVENT FUNCTIONS PAGE 1 - RIGHT SIDE -----------------------------------
 
 void switch_motor_brake_push(void *ptr) {
-  motor_enable_and_brake_toggle();
+  motor_output_toggle();
   nex_state_motor_brake = !nex_state_motor_brake;
 }
 void button_motor_oben_push(void *ptr) { //
@@ -755,7 +771,8 @@ class User_do_stuff : public Cycle_step {
 
   void do_initial_stuff() {
     Serial.println("DID INITIAL STUFF STEP 1");
-    motor_enable_and_brake_enable();
+    block_sledge();
+    motor_output_enable();
     traffic_light.set_info_user_do_stuff();
   }
   void do_loop_stuff() {
@@ -771,10 +788,10 @@ class Release_air : public Cycle_step {
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
-    start_upper_motor();
+    vent_sledge();
   }
   void do_loop_stuff() {
-    if (test_switch_mega.switchedLow()) {
+    if (short_cycle_step_delay.delay_time_is_up(3000)) {
       std::cout << "STEP COMPLETED\n";
       set_loop_completed();
     }
@@ -785,12 +802,12 @@ class Release_brake : public Cycle_step {
   String get_display_text() { return "BREMSE LOESEN"; }
 
   void do_initial_stuff() {
+    vent_sledge();
     traffic_light.set_info_machine_do_stuff();
-    stop_upper_motor();
+    motor_output_disable;
   }
   void do_loop_stuff() {
-    if (test_switch_mega.switchedLow()) {
-      std::cout << "STEP COMPLETED\n";
+    if (short_cycle_step_delay.delay_time_is_up(3000)) {
       set_loop_completed();
     }
   }
@@ -799,7 +816,10 @@ class Release_brake : public Cycle_step {
 class Sledge_back : public Cycle_step {
   String get_display_text() { return "ZURUECKFAHREN"; }
 
-  void do_initial_stuff() { traffic_light.set_info_machine_do_stuff(); }
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    move_sledge();
+  }
   void do_loop_stuff() {
     if (test_switch_mega.switchedLow()) {
       std::cout << "STEP COMPLETED\n";
@@ -813,6 +833,7 @@ class Cut_strap : public Cycle_step {
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
+    vent_sledge();
     cylinder_frontclap.set(0);
   }
   void do_loop_stuff() {
@@ -830,6 +851,7 @@ class Feed_straps : public Cycle_step {
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
+    block_sledge();
     feed_upper_strap_in_mm(counter.get_value(upper_strap_feed));
     feed_lower_strap_in_mm(counter.get_value(lower_strap_feed));
   }
@@ -865,7 +887,7 @@ void setup_stepper_motors() {
   lower_motor.setAcceleration(max_motor_acceleration); // [steps/s^2)
 
   // SET MAX ENABLE AND BRAKE TIME:
-  motor_enable_and_brake_timeout.set_time(10000); // to prevent overheating
+  motor_output_timeout.set_time(10000); // to prevent overheating
 }
 // MAIN SETUP ******************************************************************
 void setup() {
@@ -910,7 +932,7 @@ void loop() {
   nextion_display_loop();
 
   // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
-  monitor_motor_enable_and_brake();
+  monitor_motor_output();
 
   // RUN STEPPER MOTORS:
   upper_motor.run();
