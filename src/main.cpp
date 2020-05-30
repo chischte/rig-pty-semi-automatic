@@ -22,8 +22,8 @@
 // INCLUDE HEADERS *************************************************************
 
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
-//#include <Controllino.h> // PIO Controllino Library, comment out for Arduino
-// deactivate input pullup when using controllino
+//#include <Controllino.h>//        PIO Controllino Library, comment out for Arduino
+//--------------------------------> deactivate input pullup when using controllino
 #include <AccelStepper.h> //        PIO library // https://www.airspayce.com/mikem/arduino/AccelStepper
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
@@ -96,13 +96,8 @@ EEPROM_Counter counter;
 State_controller state_controller;
 Traffic_light traffic_light;
 
-// VISIER D15
-// SCHLITTEN D14
-// SCHLITTEN D13
-// MESSER D12
-
-Cylinder cylinder_sledge(CONTROLLINO_D13);
-Cylinder cylinder_vent(CONTROLLINO_D14);
+Cylinder cylinder_sledge_inlet(CONTROLLINO_D13);
+Cylinder cylinder_sledge_vent(CONTROLLINO_D14);
 Cylinder cylinder_blade(CONTROLLINO_D12);
 Cylinder cylinder_frontclap(CONTROLLINO_D15);
 Cylinder motor_upper_brake(CONTROLLINO_D1);
@@ -112,11 +107,13 @@ const byte TEST_SWITCH_PIN = 11; // needed for the temporary pullup
 Debounce test_switch_mega(TEST_SWITCH_PIN);
 Debounce sensor_upper_strap(CONTROLLINO_A0);
 Debounce sensor_lower_strap(CONTROLLINO_A1);
+Debounce sensor_sledge_startposition(CONTROLLINO_A2);
+Debounce sensor_sledge_endposition(CONTROLLINO_A3);
 
 Insomnia motor_output_timeout; // to prevent overheating
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
-Insomnia short_cycle_step_delay;
+Insomnia cycle_step_delay;
 
 // NEXTION DISPLAY OBJECTS *****************************************************
 
@@ -189,12 +186,12 @@ std::vector<Cycle_step *> cycle_steps;
 // NON NEXTION FUNCTIONS *******************************************************
 
 void reset_cylinder_states() {
-  cylinder_sledge.set(0);
+  cylinder_sledge_inlet.set(0);
   //motor_upper_strap.set(0);
   //motor_lower_strap.set(0);
   motor_upper_brake.set(0);
   cylinder_blade.set(0);
-  cylinder_vent.set(0);
+  cylinder_sledge_vent.set(0);
 }
 
 void stop_machine() {
@@ -275,9 +272,9 @@ void feed_lower_strap_in_mm(int mm) {
 }
 
 void print_cylinder_states() {
-  Serial.println("ZYLINDER_STATES: " + String(cylinder_vent.get_state()) +
+  Serial.println("ZYLINDER_STATES: " + String(cylinder_sledge_vent.get_state()) +
                  cylinder_blade.get_state() + cylinder_frontclap.get_state() +
-                 cylinder_sledge.get_state() + motor_upper_brake.get_state() +
+                 cylinder_sledge_inlet.get_state() + motor_upper_brake.get_state() +
                  motor_lower_brake.get_state());
 }
 
@@ -310,18 +307,18 @@ void reset_flag_of_current_step() {
 }
 
 void move_sledge() {
-  cylinder_sledge.set(1);
-  cylinder_vent.set(1);
+  cylinder_sledge_inlet.set(1);
+  cylinder_sledge_vent.set(1);
 }
 
 void block_sledge() {
-  cylinder_sledge.set(0);
-  cylinder_vent.set(1);
+  cylinder_sledge_inlet.set(0);
+  cylinder_sledge_vent.set(1);
 }
 
 void vent_sledge() {
-  cylinder_sledge.set(0);
-  cylinder_vent.set(0);
+  cylinder_sledge_inlet.set(0);
+  cylinder_sledge_vent.set(0);
 }
 
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
@@ -457,7 +454,7 @@ void button_motor_unten_pop(void *ptr) { //
   stop_lower_motor();
 }
 void switch_air_release_push(void *ptr) {
-  cylinder_vent.toggle();
+  cylinder_sledge_vent.toggle();
   nex_state_air_release = !nex_state_air_release;
 }
 void button_schneiden_push(void *ptr) {
@@ -469,10 +466,10 @@ void button_schneiden_pop(void *ptr) {
   cylinder_frontclap.set(1);
 }
 void button_schlitten_push(void *ptr) { //
-  cylinder_sledge.set(1);
+  cylinder_sledge_inlet.set(1);
 }
 void button_schlitten_pop(void *ptr) { //
-  cylinder_sledge.set(0);
+  cylinder_sledge_inlet.set(0);
 }
 
 // TOUCH EVENT FUNCTIONS PAGE 2 - LEFT SIDE ------------------------------------
@@ -670,7 +667,7 @@ void set_traffic_light_field_color(String color) {
 void display_loop_page_1_right_side() {
 
   // UPDATE SWITCHES:
-  if (cylinder_vent.get_state() != nex_state_air_release) {
+  if (cylinder_sledge_vent.get_state() != nex_state_air_release) {
     toggle_ds_switch("bt3");
     nex_state_air_release = !nex_state_air_release;
   }
@@ -680,11 +677,11 @@ void display_loop_page_1_right_side() {
   }
 
   // UPDATE BUTTONS:
-  if (cylinder_sledge.get_state() != nex_state_sledge) {
-    bool state = cylinder_sledge.get_state();
+  if (cylinder_sledge_inlet.get_state() != nex_state_sledge) {
+    bool state = cylinder_sledge_inlet.get_state();
     String button = "b6";
     set_momentary_button_high_or_low(button, state);
-    nex_state_sledge = cylinder_sledge.get_state();
+    nex_state_sledge = cylinder_sledge_inlet.get_state();
   }
   if (upper_motor.isRunning() != nex_state_upper_motor) {
     bool state = upper_motor.isRunning();
@@ -755,9 +752,7 @@ void update_lower_counter_value() {
 }
 void reset_lower_counter_value() {
   if (nex_reset_button_timeout.is_marked_activated()) {
-    Serial.println("HAUDI");
     if (nex_reset_button_timeout.has_timed_out()) {
-      Serial.println("GAUDI");
       counter.set_value(longtime_counter, 0);
     }
   }
@@ -770,7 +765,6 @@ class User_do_stuff : public Cycle_step {
   String get_display_text() { return "SPANNEN UND CRIMPEN"; }
 
   void do_initial_stuff() {
-    Serial.println("DID INITIAL STUFF STEP 1");
     block_sledge();
     motor_output_enable();
     traffic_light.set_info_user_do_stuff();
@@ -788,10 +782,11 @@ class Release_air : public Cycle_step {
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
+    motor_output_enable();
     vent_sledge();
   }
   void do_loop_stuff() {
-    if (short_cycle_step_delay.delay_time_is_up(3000)) {
+    if (cycle_step_delay.delay_time_is_up(3000)) {
       std::cout << "STEP COMPLETED\n";
       set_loop_completed();
     }
@@ -804,10 +799,10 @@ class Release_brake : public Cycle_step {
   void do_initial_stuff() {
     vent_sledge();
     traffic_light.set_info_machine_do_stuff();
-    motor_output_disable;
+    motor_output_disable();
   }
   void do_loop_stuff() {
-    if (short_cycle_step_delay.delay_time_is_up(3000)) {
+    if (cycle_step_delay.delay_time_is_up(3000)) {
       set_loop_completed();
     }
   }
@@ -818,6 +813,7 @@ class Sledge_back : public Cycle_step {
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
+    motor_output_disable();
     move_sledge();
   }
   void do_loop_stuff() {
@@ -833,6 +829,7 @@ class Cut_strap : public Cycle_step {
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
+    motor_output_disable();
     vent_sledge();
     cylinder_frontclap.set(0);
   }
@@ -857,8 +854,8 @@ class Feed_straps : public Cycle_step {
   }
   void do_loop_stuff() {
 
-    if (test_switch_mega.switchedLow()) {
-      std::cout << "STEP COMPLETED\n";
+    if (!upper_motor.isRunning() && !lower_motor.isRunning()) {
+      motor_output_disable();
       set_loop_completed();
     }
   }
@@ -868,6 +865,7 @@ class Feed_straps : public Cycle_step {
 //------------------------------------------------------------------------------
 
 // STEPPER MOTOR SETUP *********************************************************
+
 void setup_stepper_motors() {
 
   // PINS:
@@ -889,7 +887,9 @@ void setup_stepper_motors() {
   // SET MAX ENABLE AND BRAKE TIME:
   motor_output_timeout.set_time(10000); // to prevent overheating
 }
+
 // MAIN SETUP ******************************************************************
+
 void setup() {
   setup_stepper_motors();
   //------------------------------------------------
@@ -941,6 +941,7 @@ void loop() {
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
     state_controller.switch_to_next_step();
+    reset_flag_of_current_step();
   }
 
   // RESET RIG IF RESET IS ACTIVATED:
@@ -967,7 +968,6 @@ void loop() {
   // DISPLAY DEBUG INFOMATION:
   long runtime = measure_runtime();
   if (print_interval_timeout.has_timed_out()) {
-    Serial.println(state_controller.machine_is_running());
     //Serial.println(runtime);
     //print_cylinder_states();
     print_interval_timeout.reset_time();
