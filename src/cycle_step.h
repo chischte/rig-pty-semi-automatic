@@ -10,6 +10,7 @@ public:
   // FUNCTIONS:
   Cycle_step();
   void do_stuff();
+  void reset_flags();
 
   // VIRTUAL FUNCTIONS:
   virtual void do_initial_stuff() = 0;

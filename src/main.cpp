@@ -120,7 +120,7 @@ Debounce sensor_lower_strap(CONTROLLINO_A1);
 
 Insomnia motor_enable_and_brake_timeout; // to prevent overheating
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
-Insomnia print_interval_timeout(500);
+Insomnia print_interval_timeout(1000);
 
 // NEXTION DISPLAY OBJECTS *****************************************************
 
@@ -335,12 +335,6 @@ void display_value_in_field(int value, String valueField) {
   send_to_nextion();
 }
 
-void print_current_step() {
-  Serial.print(state_controller.get_current_step());
-  Serial.print(" ");
-  // Serial.println(cycleName[state_controller.currentCycleStep()]);
-}
-
 void display_text_in_field(String text, String textField) {
   Serial2.print(textField);
   Serial2.print(".txt=");
@@ -368,7 +362,6 @@ void button_traffic_light_push(void *ptr) {
 
   if (traffic_light.is_in_start_state()) {
     state_controller.set_machine_running();
-    Serial.println("MACHINE SHOULD RUN NOW");
     nex_state_machine_running = !nex_state_machine_running;
   }
   if (traffic_light.is_in_sleep_state()) {
@@ -725,9 +718,9 @@ class User_do_stuff : public Cycle_step {
   String get_display_text() { return "SPANNEN UND CRIMPEN"; }
 
   void do_initial_stuff() {
+    Serial.println("DID INITIAL STUFF STEP 1");
     motor_enable_and_brake_enable();
     traffic_light.set_info_user_do_stuff();
-    Serial.println("DID INITIAL STUFF STEP 1");
   }
   void do_loop_stuff() {
     if (test_switch_mega.switchedLow()) {
@@ -859,6 +852,8 @@ void setup() {
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextion_display_setup();
+  // REQUIRED STEP TO MAKE SKETCH WORK AFTER RESET:
+  cycle_steps[state_controller.get_current_step()]->reset_flags();
 }
 
 // MAIN LOOP *******************************************************************
@@ -904,6 +899,8 @@ void loop() {
   // DISPLAY DEBUG INFOMATION:
   if (print_interval_timeout.has_timed_out()) {
     // print_cylinder_states();
+    if (state_controller.machine_is_running()) {
+    }
     print_interval_timeout.reset_time();
   }
 }

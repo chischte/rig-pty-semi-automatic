@@ -14,6 +14,11 @@ void Cycle_step::do_stuff() {
   }
 }
 
+void Cycle_step::reset_flags() {
+  _innit_completed = false;
+  _loop_completed = false;
+}
+
 void Cycle_step::set_loop_completed() { //
   _loop_completed = true;
 }
