@@ -304,6 +304,10 @@ long measure_runtime() {
   return time_elapsed;
 }
 
+void reset_flag_of_current_step(){
+  cycle_steps[state_controller.get_current_step()]->reset_flags();
+}
+
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
 
 void send_to_nextion() {
@@ -401,10 +405,17 @@ void switch_step_auto_mode_push(void *ptr) {
 
 void button_stepback_push(void *ptr) {
   if (state_controller.get_current_step() > 0) {
+    state_controller.set_machine_stop();
+    reset_flag_of_current_step();
     state_controller.set_current_step_to(state_controller.get_current_step() - 1);
   }
 }
-void button_next_step_push(void *ptr) { state_controller.switch_to_next_step(); }
+void button_next_step_push(void *ptr) {
+  state_controller.set_machine_stop();
+  reset_flag_of_current_step();
+  state_controller.switch_to_next_step();
+}
+
 void button_reset_cycle_push(void *ptr) {
   state_controller.set_reset_mode(1);
   clear_text_field("t4");
@@ -888,7 +899,7 @@ void setup() {
   //------------------------------------------------
   nextion_display_setup();
   // REQUIRED STEP TO MAKE SKETCH WORK AFTER RESET:
-  cycle_steps[state_controller.get_current_step()]->reset_flags();
+  reset_flag_of_current_step();
 }
 
 // MAIN LOOP *******************************************************************
