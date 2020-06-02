@@ -20,3 +20,5 @@ BXT_STANDARD_RIG/spec.d
 .vscode/
 
 pinout/~$pinout.xlsx
+
+stepper_motor/~$motor_calculations.xlsx
