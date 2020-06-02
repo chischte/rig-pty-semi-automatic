@@ -8,8 +8,21 @@
  * May 2020, Zürich
  * *****************************************************************************
  * RUNTIME:
- * Measured runtime: about 130 micros
+ * Measured runtime in idle: about 130 micros
  * Resulting max stepper frequency: 7700Hz (6000 is sufficient)
+ * The display loop takes about 60 micros
+ * 
+ * Each stepper motor takes about 240 micros when running
+ * Both motors and program runnging = about 600 mircos
+ * = max 1670Hz! when both motors, and  are running.
+ * 360 micros with one motor running = 2780Hz
+ * 
+ * Possible solutions:
+ * Use an additional Arduino only for the stepper, only one stepper at a time: 4660 Hz
+ * Use a timed interrupt:
+ * www.engblaze.com/microcontroller-tutorial-avr-and-arduino-timer-interrupts/
+ * 
+ *  
  * *****************************************************************************
  * TODO:
  * eeprom counter is not a counter but a rememberer!
