@@ -92,11 +92,9 @@ const byte stepper_direction_factor = 1; // set -1 to change direction
 
 const byte UPPER_MOTOR_STEP_PIN = CONTROLLINO_D0;
 const byte UPPER_MOTOR_DIRECTION_PIN = CONTROLLINO_D1;
-const byte UPPER_MOTOR_ENABLE_PIN = CONTROLLINO_D2;
 
 const byte LOWER_MOTOR_STEP_PIN = CONTROLLINO_D3;
 const byte LOWER_MOTOR_DIRECTION_PIN = CONTROLLINO_D4;
-const byte LOWER_MOTOR_ENABLE_PIN = CONTROLLINO_D5;
 
 // GENERATE OBJECTS ************************************************************
 
@@ -108,10 +106,10 @@ Cylinder cylinder_sledge_inlet(CONTROLLINO_D13);
 Cylinder cylinder_sledge_vent(CONTROLLINO_D14);
 Cylinder cylinder_blade(CONTROLLINO_D12);
 Cylinder cylinder_frontclap(CONTROLLINO_D15);
-Cylinder motor_upper_enable(CONTROLLINO_D1);
-Cylinder motor_lower_enable(CONTROLLINO_D0);
-Cylinder motor_upper_pulse(CONTROLLINO_D12);
-Cylinder motor_lower_pulse(CONTROLLINO_D13);
+Cylinder motor_upper_enable(CONTROLLINO_D2);
+Cylinder motor_lower_enable(CONTROLLINO_D5);
+Cylinder motor_upper_pulse(CONTROLLINO_D8);
+Cylinder motor_lower_pulse(CONTROLLINO_D9);
 
 const byte TEST_SWITCH_PIN = 11; // needed for the temporary pullup
 Debounce test_switch_mega(TEST_SWITCH_PIN);
@@ -879,12 +877,8 @@ class Feed_straps : public Cycle_step {
 void setup_stepper_motors() {
 
   // PINS:
-  pinMode(UPPER_MOTOR_STEP_PIN, OUTPUT);
   pinMode(UPPER_MOTOR_DIRECTION_PIN, OUTPUT);
-  pinMode(UPPER_MOTOR_ENABLE_PIN, OUTPUT);
-  pinMode(LOWER_MOTOR_STEP_PIN, OUTPUT);
   pinMode(LOWER_MOTOR_DIRECTION_PIN, OUTPUT);
-  pinMode(LOWER_MOTOR_ENABLE_PIN, OUTPUT);
 
 
   // SET MAX ENABLE AND BRAKE TIME:
