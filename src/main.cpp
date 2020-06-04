@@ -882,7 +882,7 @@ void setup_stepper_motors() {
 
 
   // SET MAX ENABLE AND BRAKE TIME:
-  motor_output_timeout.set_time(10000); // to prevent overheating
+  motor_output_timeout.set_time(30000); // to prevent overheating
 }
 
 // MAIN SETUP ******************************************************************
