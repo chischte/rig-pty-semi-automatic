@@ -270,13 +270,11 @@ long calculate_steps(int mm) {
 void feed_upper_strap_in_mm(int mm) {
   long number_of_steps = calculate_steps(mm);
   motor_output_enable();
-  //upper_motor.move(number_of_steps * stepper_direction_factor);
 }
 
 void feed_lower_strap_in_mm(int mm) {
   long number_of_steps = calculate_steps(mm);
   motor_output_enable();
-  //lower_motor.move(number_of_steps * stepper_direction_factor);
 }
 
 void print_cylinder_states() {
@@ -879,6 +877,8 @@ void setup_stepper_motors() {
   // PINS:
   pinMode(UPPER_MOTOR_DIRECTION_PIN, OUTPUT);
   pinMode(LOWER_MOTOR_DIRECTION_PIN, OUTPUT);
+  digitalWrite(UPPER_MOTOR_DIRECTION_PIN,HIGH);
+  digitalWrite(LOWER_MOTOR_DIRECTION_PIN,HIGH);
 
 
   // SET MAX ENABLE AND BRAKE TIME:
