@@ -773,16 +773,23 @@ void reset_lower_counter_value() {
 //------------------------------------------------------------------------------
 class User_do_stuff : public Cycle_step {
   String get_display_text() { return "SPANNEN UND CRIMPEN"; }
+  int substep = 0;
 
   void do_initial_stuff() {
     block_sledge();
     motor_output_enable();
     traffic_light.set_info_user_do_stuff();
+    substep = 0;
+    cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (test_switch_mega.switchedLow()) {
-      std::cout << "STEP COMPLETED\n";
-      set_loop_completed();
+    if (sensor_sledge_endposition.switchedHigh()) {
+      substep = 1;
+    }
+    if (substep == 1) {
+      if (build_up_force_delay.delay_time_is_up(3000)) {
+        set_loop_completed();
+      }
     }
   }
 };
@@ -794,9 +801,10 @@ class Release_air : public Cycle_step {
     traffic_light.set_info_machine_do_stuff();
     motor_output_enable();
     vent_sledge();
+    cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (cycle_step_delay.delay_time_is_up(3000)) {
+    if (cycle_step_delay.delay_time_is_up(5000)) {
       std::cout << "STEP COMPLETED\n";
       set_loop_completed();
     }
@@ -810,6 +818,7 @@ class Release_brake : public Cycle_step {
     vent_sledge();
     traffic_light.set_info_machine_do_stuff();
     motor_output_disable();
+    cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
     if (cycle_step_delay.delay_time_is_up(3000)) {
