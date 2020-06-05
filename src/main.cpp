@@ -9,24 +9,9 @@
  * *****************************************************************************
  * RUNTIME:
  * Measured runtime in idle: about 130 micros
- * Resulting max stepper frequency: 7700Hz (6000 is sufficient)
- * The display loop takes about 60 micros
- * 
- * Each stepper motor takes about 240 micros when running
- * Both motors and program runnging = about 600 mircos
- * = max 1670Hz! when both motors, and  are running.
- * 360 micros with one motor running = 2780Hz
- * 
- * Possible solutions:
- * Use an additional Arduino only for the stepper, only one stepper at a time: 4660 Hz
- * Use a timed interrupt:
- * www.engblaze.com/microcontroller-tutorial-avr-and-arduino-timer-interrupts/
- * 
- *  
  * *****************************************************************************
  * TODO:
  * eeprom counter is not a counter but a rememberer!
- * Split insomnia in two libraries (delay and timeout)
  * Install code check tools
  * Read:  
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
@@ -122,6 +107,8 @@ Insomnia motor_output_timeout; // to prevent overheating
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
 Insomnia cycle_step_delay;
+Insomnia upper_feed_delay;
+Insomnia lower_feed_delay;
 
 // NEXTION DISPLAY OBJECTS *****************************************************
 
@@ -249,35 +236,23 @@ void start_upper_motor() {
   motor_upper_pulse.set(1);
 }
 
-void stop_upper_motor() {
-
-  motor_output_enable();
-  motor_upper_pulse.set(0);
-}
+void stop_upper_motor() { motor_upper_pulse.set(0); }
 
 void start_lower_motor() {
   motor_output_enable();
   motor_lower_pulse.set(1);
 }
 
-void stop_lower_motor() {
-  motor_output_enable();
-  motor_lower_pulse.set(0);
-}
+void stop_lower_motor() { motor_lower_pulse.set(0); }
 
 long calculate_steps(int mm) {
   long numberOfSteps = mm * full_steps_per_mm * micro_step_factor;
   return numberOfSteps;
 }
 
-void feed_upper_strap_in_mm(int mm) {
-  long number_of_steps = calculate_steps(mm);
-  motor_output_enable();
-}
-
-void feed_lower_strap_in_mm(int mm) {
-  long number_of_steps = calculate_steps(mm);
-  motor_output_enable();
+unsigned long calculate_feedtime_from_mm(long mm) {
+  unsigned long feedtime = mm * 50;
+  return feedtime;
 }
 
 void print_cylinder_states() {
@@ -489,7 +464,7 @@ void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_str
 void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
 void button_lower_slider_right_push(void *ptr) { increase_slider_value(lower_strap_feed); }
 void increase_slider_value(int eeprom_value_number) {
-  long max_value = 200; // [mm]
+  long max_value = 300; // [mm]
   long interval = 5;
   long current_value = counter.get_value(eeprom_value_number);
 
@@ -854,8 +829,7 @@ class Cut_strap : public Cycle_step {
   void do_loop_stuff() {
     cylinder_blade.stroke(4000, 4000);
     if (cylinder_blade.stroke_completed()) {
-      std::cout << "STEP COMPLETED\n";
-      cylinder_frontclap.set(1);
+      cylinder_frontclap.set(0);
       set_loop_completed();
     }
   }
@@ -863,19 +837,40 @@ class Cut_strap : public Cycle_step {
 //------------------------------------------------------------------------------
 class Feed_straps : public Cycle_step {
   String get_display_text() { return "BAND VORSCHIEBEN"; }
+  bool upper_strap_completed = false;
+  bool lower_strap_completed = false;
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
+    upper_strap_completed = false;
+    lower_strap_completed = false;
+    upper_feed_delay.set_unstarted();
+    lower_feed_delay.set_unstarted();
+    cycle_step_delay.set_unstarted();
     block_sledge();
-    feed_upper_strap_in_mm(counter.get_value(upper_strap_feed));
-    feed_lower_strap_in_mm(counter.get_value(lower_strap_feed));
+    start_upper_motor();
+    start_lower_motor();
   }
   void do_loop_stuff() {
 
-    // if (!upper_motor.isRunning() && !lower_motor.isRunning()) {
-    //   motor_output_disable();
-    //   set_loop_completed();
-    // }
+    unsigned long upper_feedtime = calculate_feedtime_from_mm(counter.get_value(upper_strap_feed));
+    if (upper_feed_delay.delay_time_is_up(upper_feedtime)) {
+      stop_upper_motor();
+      upper_strap_completed = true;
+    }
+
+    unsigned long lower_feedtime = calculate_feedtime_from_mm(counter.get_value(lower_strap_feed));
+    if (lower_feed_delay.delay_time_is_up(lower_feedtime)) {
+      stop_lower_motor();
+      lower_strap_completed = true;
+    }
+
+    if (upper_strap_completed && lower_strap_completed) {
+      if (cycle_step_delay.delay_time_is_up(500)) {
+        motor_output_disable();
+        set_loop_completed();
+      }
+    }
   }
 };
 //------------------------------------------------------------------------------
@@ -924,7 +919,7 @@ void setup() {
   counter.setup(0, 1023, counter_no_of_values);
   //------------------------------------------------
   Serial.begin(115200);
-  state_controller.set_step_mode(); // there is no step mode in this program
+  state_controller.set_auto_mode();
   state_controller.set_machine_stop();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
