@@ -137,7 +137,7 @@ NexDSButton switch_step_auto_mode = NexDSButton(1, 4, "bt1");
 // PAGE 1 - RIGHT SIDE ---------------------------------------------------------
 NexButton button_upper_motor = NexButton(1, 9, "b4");
 NexButton button_lower_motor = NexButton(1, 8, "b3");
-NexButton button_blade = NexButton(1, 14, "b5");
+NexButton button_cut = NexButton(1, 14, "b5");
 NexButton button_sledge = NexButton(1, 1, "b6");
 NexDSButton switch_motor_brake = NexDSButton(1, 10, "bt5");
 NexDSButton switch_air_release = NexDSButton(1, 13, "bt3");
@@ -159,7 +159,7 @@ NexTouch *nex_listen_list[] = { //
     &nex_page_1, &button_previous_step, &button_next_step, &button_reset_cycle,
     &button_traffic_light, &switch_step_auto_mode,
     // PAGE 1 RIGHT:
-    &button_blade, &switch_motor_brake, &switch_air_release, &button_sledge, &button_upper_motor,
+    &button_cut, &switch_motor_brake, &switch_air_release, &button_sledge, &button_upper_motor,
     &button_lower_motor,
     // PAGE 2 LEFT:
     &nex_page_2, &button_slider_1_left, &button_slider_1_right, &nex_page_2, &button_slider_2_left,
@@ -469,11 +469,11 @@ void switch_air_release_push(void *ptr) {
 }
 void button_schneiden_push(void *ptr) {
   cylinder_blade.set(1);
-  cylinder_frontclap.set(0);
+  cylinder_frontclap.set(1);
 }
 void button_schneiden_pop(void *ptr) {
   cylinder_blade.set(0);
-  cylinder_frontclap.set(1);
+  cylinder_frontclap.set(0);
 }
 void button_schlitten_push(void *ptr) { //
   cylinder_sledge_inlet.set(1);
@@ -534,7 +534,7 @@ void page_1_push(void *ptr) {
   // REFRESH BUTTON STATES:
   nex_prev_cycle_step = !state_controller.get_current_step();
   nex_state_step_mode = true;
-  nex_state_air_release = 0;
+  nex_state_air_release = 1;
   nex_state_motor_brake = 0;
   nex_state_upper_motor = 0;
   nex_state_sledge = 0;
@@ -575,8 +575,8 @@ void setup_display_event_callback_functions() {
   button_upper_motor.attachPop(button_motor_oben_pop);
   button_lower_motor.attachPush(button_motor_unten_push);
   button_lower_motor.attachPop(button_motor_unten_pop);
-  button_blade.attachPush(button_schneiden_push);
-  button_blade.attachPop(button_schneiden_pop);
+  button_cut.attachPush(button_schneiden_push);
+  button_cut.attachPop(button_schneiden_pop);
   button_sledge.attachPush(button_schlitten_push);
   button_sledge.attachPop(button_schlitten_pop);
   // PAGE 2 PUSH ONLY:
