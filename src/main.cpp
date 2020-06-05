@@ -787,7 +787,7 @@ class User_do_stuff : public Cycle_step {
       substep = 1;
     }
     if (substep == 1) {
-      if (build_up_force_delay.delay_time_is_up(3000)) {
+      if (cycle_step_delay.delay_time_is_up(3000)) {
         set_loop_completed();
       }
     }
@@ -805,7 +805,6 @@ class Release_air : public Cycle_step {
   }
   void do_loop_stuff() {
     if (cycle_step_delay.delay_time_is_up(5000)) {
-      std::cout << "STEP COMPLETED\n";
       set_loop_completed();
     }
   }
@@ -836,8 +835,8 @@ class Sledge_back : public Cycle_step {
     move_sledge();
   }
   void do_loop_stuff() {
-    if (test_switch_mega.switchedLow()) {
-      std::cout << "STEP COMPLETED\n";
+    if (sensor_sledge_startposition.switchedHigh()) {
+      block_sledge();
       set_loop_completed();
     }
   }
@@ -850,10 +849,10 @@ class Cut_strap : public Cycle_step {
     traffic_light.set_info_machine_do_stuff();
     motor_output_disable();
     vent_sledge();
-    cylinder_frontclap.set(0);
+    cylinder_frontclap.set(1);
   }
   void do_loop_stuff() {
-    cylinder_blade.stroke(1500, 1500);
+    cylinder_blade.stroke(4000, 4000);
     if (cylinder_blade.stroke_completed()) {
       std::cout << "STEP COMPLETED\n";
       cylinder_frontclap.set(1);
