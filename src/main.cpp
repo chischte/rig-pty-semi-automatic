@@ -35,7 +35,7 @@
 // INCLUDE HEADERS *************************************************************
 
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
-#include <Controllino.h>//        PIO Controllino Library, comment out for Arduino
+#include <Controllino.h> //        PIO Controllino Library, comment out for Arduino
 //--------------------------------> deactivate input pullup when using controllino
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
@@ -102,8 +102,8 @@ EEPROM_Counter counter;
 State_controller state_controller;
 Traffic_light traffic_light;
 
-Cylinder cylinder_sledge_inlet(CONTROLLINO_D13);
-Cylinder cylinder_sledge_vent(CONTROLLINO_D14);
+Cylinder cylinder_sledge_inlet(CONTROLLINO_D14);
+Cylinder cylinder_sledge_vent(CONTROLLINO_D13);
 Cylinder cylinder_blade(CONTROLLINO_D12);
 Cylinder cylinder_frontclap(CONTROLLINO_D15);
 Cylinder motor_upper_enable(CONTROLLINO_D2);
@@ -193,24 +193,27 @@ std::vector<Cycle_step *> cycle_steps;
 
 // NON NEXTION FUNCTIONS *******************************************************
 
-void reset_cylinder_states() {
-  cylinder_sledge_inlet.set(0);
-  //motor_upper_strap.set(0);
-  //motor_lower_strap.set(0);
-  motor_upper_enable.set(0);
+void set_initial_cylinder_states() {
+  //cylinder_sledge_vent.invertCylinderLogic(1);
   cylinder_blade.set(0);
+  cylinder_frontclap.set(0);
+  cylinder_sledge_inlet.set(0);
   cylinder_sledge_vent.set(0);
+  motor_upper_enable.set(0);
+  motor_upper_pulse.set(0);
+  motor_lower_enable.set(0);
+  motor_lower_pulse.set(0);
 }
 
 void stop_machine() {
-  reset_cylinder_states();
+  set_initial_cylinder_states();
   state_controller.set_step_mode();
   state_controller.set_machine_stop();
 }
 
 void reset_machine() {
   state_controller.set_machine_stop();
-  reset_cylinder_states();
+  set_initial_cylinder_states();
   clear_text_field("t4");
   hide_info_field();
   state_controller.set_current_step_to(0);
@@ -436,6 +439,7 @@ void button_next_step_push(void *ptr) {
 }
 
 void button_reset_cycle_push(void *ptr) {
+  set_initial_cylinder_states();
   state_controller.set_reset_mode(1);
   clear_text_field("t4");
   hide_info_field();
@@ -877,9 +881,8 @@ void setup_stepper_motors() {
   // PINS:
   pinMode(UPPER_MOTOR_DIRECTION_PIN, OUTPUT);
   pinMode(LOWER_MOTOR_DIRECTION_PIN, OUTPUT);
-  digitalWrite(UPPER_MOTOR_DIRECTION_PIN,HIGH);
-  digitalWrite(LOWER_MOTOR_DIRECTION_PIN,HIGH);
-
+  digitalWrite(UPPER_MOTOR_DIRECTION_PIN, HIGH);
+  digitalWrite(LOWER_MOTOR_DIRECTION_PIN, HIGH);
 
   // SET MAX ENABLE AND BRAKE TIME:
   motor_output_timeout.set_time(30000); // to prevent overheating
@@ -889,7 +892,8 @@ void setup_stepper_motors() {
 
 void setup() {
   setup_stepper_motors();
-     //------------------------------------------------
+  set_initial_cylinder_states();
+  //------------------------------------------------
   // SETUP PIN MODES:
   //pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
 
@@ -912,7 +916,7 @@ void setup() {
   counter.setup(0, 1023, counter_no_of_values);
   //------------------------------------------------
   Serial.begin(115200);
-  state_controller.set_auto_mode(); // there is no step mode in this program
+  state_controller.set_step_mode(); // there is no step mode in this program
   state_controller.set_machine_stop();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
@@ -930,7 +934,6 @@ void loop() {
 
   // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
   monitor_motor_output();
-
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
   if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
