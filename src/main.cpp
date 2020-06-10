@@ -13,6 +13,8 @@
  * TODO:
  * eeprom counter is not a counter but a rememberer!
  * Install code check tools
+ * Split Insomnia into delay and timeout library
+ * Refactor all libraries
  * Read:  
  * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  */
@@ -763,6 +765,8 @@ class User_do_stuff : public Cycle_step {
     }
     if (substep == 1) {
       if (cycle_step_delay.delay_time_is_up(3000)) {
+        counter.count_one_up(shorttime_counter);
+        counter.count_one_up(longtime_counter);
         set_loop_completed();
       }
     }
