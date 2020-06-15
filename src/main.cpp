@@ -183,7 +183,7 @@ std::vector<Cycle_step *> cycle_steps;
 // NON NEXTION FUNCTIONS *******************************************************
 
 void set_initial_cylinder_states() {
-  //cylinder_sledge_vent.invertCylinderLogic(1);
+  //cylinder_sledge_vent.invert_cylinder_logic(1);
   cylinder_blade.set(0);
   cylinder_frontclap.set(0);
   cylinder_sledge_inlet.set(0);
@@ -760,7 +760,7 @@ class User_do_stuff : public Cycle_step {
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (sensor_sledge_endposition.switchedHigh()) {
+    if (sensor_sledge_endposition.switched_high()) {
       substep = 1;
     }
     if (substep == 1) {
@@ -814,7 +814,7 @@ class Sledge_back : public Cycle_step {
     move_sledge();
   }
   void do_loop_stuff() {
-    if (sensor_sledge_startposition.switchedHigh()) {
+    if (sensor_sledge_startposition.switched_high()) {
       block_sledge();
       set_loop_completed();
     }
