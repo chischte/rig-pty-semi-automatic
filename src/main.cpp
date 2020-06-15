@@ -10,20 +10,12 @@
  * RUNTIME:
  * Measured runtime in idle: about 130 micros
  * *****************************************************************************
- * TODO:
- * eeprom counter is not a counter but a rememberer!
- * Install code check tools
- * Split Insomnia into delay and timeout library
- * Refactor all libraries
- * Read:  
- * https://hackingmajenkoblog.wordpress.com/2016/02/04/the-evils-of-arduino-strings/
  */
 
 // INCLUDE HEADERS *************************************************************
 
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
-#include <Controllino.h> //        PIO Controllino Library, comment out for Arduino
-//--------------------------------> deactivate input pullup when using controllino
+#include <Controllino.h> //         PIO Controllino Library
 #include <Cylinder.h> //            https://github.com/chischte/cylinder-library
 #include <Debounce.h> //            https://github.com/chischte/debounce-library
 #include <EEPROM_Counter.h> //      https://github.com/chischte/eeprom-counter-library
@@ -98,8 +90,6 @@ Cylinder motor_lower_enable(CONTROLLINO_D5);
 Cylinder motor_upper_pulse(CONTROLLINO_D8);
 Cylinder motor_lower_pulse(CONTROLLINO_D9);
 
-const byte TEST_SWITCH_PIN = 11; // needed for the temporary pullup
-Debounce test_switch_mega(TEST_SWITCH_PIN);
 Debounce sensor_sledge_startposition(CONTROLLINO_A0);
 Debounce sensor_sledge_endposition(CONTROLLINO_A1);
 Debounce sensor_upper_strap(CONTROLLINO_A2);
@@ -902,7 +892,7 @@ void setup() {
   set_initial_cylinder_states();
   //------------------------------------------------
   // SETUP PIN MODES:
-  //pinMode(TEST_SWITCH_PIN, INPUT_PULLUP); // ---> DEACTIVATE FOR CONTROLLINO !!!
+  // n.a.
 
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
