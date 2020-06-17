@@ -237,13 +237,8 @@ void start_lower_motor() {
 
 void stop_lower_motor() { motor_lower_pulse.set(0); }
 
-long calculate_steps(int mm) {
-  long numberOfSteps = mm * full_steps_per_mm * micro_step_factor;
-  return numberOfSteps;
-}
-
 unsigned long calculate_feedtime_from_mm(long mm) {
-  unsigned long feedtime = mm * 50;
+  unsigned long feedtime = mm * 12;
   return feedtime;
 }
 
@@ -739,7 +734,7 @@ void reset_lower_counter_value() {
 
 //------------------------------------------------------------------------------
 class User_do_stuff : public Cycle_step {
-  String get_display_text() { return "SPANNEN UND CRIMPEN"; }
+  String get_display_text() { return "SPANNEN + CRIMPEN"; }
   int substep = 0;
 
   void do_initial_stuff() {
@@ -804,7 +799,7 @@ class Sledge_back : public Cycle_step {
     move_sledge();
   }
   void do_loop_stuff() {
-    if (sensor_sledge_startposition.switched_high()) {
+    if (sensor_sledge_startposition.get_button_state()) {
       block_sledge();
       set_loop_completed();
     }
