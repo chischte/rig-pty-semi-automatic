@@ -10,6 +10,12 @@
  * RUNTIME:
  * Measured runtime in idle: about 130 micros
  * *****************************************************************************
+ * TODO:
+ * Show startscreen after startup
+ * Install traffic light
+ * Make air release faster
+ * Wait a short while after moving sledge back
+ * 
  */
 
 // INCLUDE HEADERS *************************************************************
@@ -784,7 +790,7 @@ class Release_brake : public Cycle_step {
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (cycle_step_delay.delay_time_is_up(3000)) {
+    if (cycle_step_delay.delay_time_is_up(1000)) {
       set_loop_completed();
     }
   }
@@ -816,7 +822,7 @@ class Cut_strap : public Cycle_step {
     cylinder_frontclap.set(1);
   }
   void do_loop_stuff() {
-    cylinder_blade.stroke(4000, 4000);
+    cylinder_blade.stroke(2500, 1500);
     if (cylinder_blade.stroke_completed()) {
       cylinder_frontclap.set(0);
       set_loop_completed();
@@ -877,7 +883,7 @@ void setup_stepper_motors() {
   digitalWrite(LOWER_MOTOR_DIRECTION_PIN, HIGH);
 
   // SET MAX ENABLE AND BRAKE TIME:
-  motor_output_timeout.set_time(30000); // to prevent overheating
+  motor_output_timeout.set_time(60000); // to prevent overheating
 }
 
 // MAIN SETUP ******************************************************************
