@@ -13,9 +13,8 @@
  * TODO:
  * Show startscreen after startup
  * Install traffic light
- * Make air release faster
+ * Make air release even faster
  * Wait a short while after moving sledge back
- * Jump to step 1 when reseting
  * 
  */
 
@@ -572,6 +571,8 @@ void nextion_display_setup() {
   send_to_nextion(); // needed to start communication
   Serial2.print("rest"); // Reset
   send_to_nextion();
+  sendCommand("page 0");
+  send_to_nextion();
 
   setup_display_event_callback_functions();
   traffic_light.set_info_start();
@@ -759,7 +760,7 @@ class User_do_stuff : public Cycle_step {
       substep = 1;
     }
     if (substep == 1) {
-      if (cycle_step_delay.delay_time_is_up(3000)) {
+      if (cycle_step_delay.delay_time_is_up(3500)) {
         counter.count_one_up(shorttime_counter);
         counter.count_one_up(longtime_counter);
         set_loop_completed();
@@ -778,7 +779,7 @@ class Release_air : public Cycle_step {
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (cycle_step_delay.delay_time_is_up(5000)) {
+    if (cycle_step_delay.delay_time_is_up(3000)) {
       set_loop_completed();
     }
   }
