@@ -15,6 +15,7 @@
  * Install traffic light
  * Make air release faster
  * Wait a short while after moving sledge back
+ * Jump to step 1 when reseting
  * 
  */
 
@@ -203,6 +204,7 @@ void reset_machine() {
   clear_text_field("t4");
   hide_info_field();
   state_controller.set_current_step_to(0);
+  state_controller.set_reset_mode(false);
 }
 
 void motor_output_enable() {
@@ -410,7 +412,7 @@ void button_next_step_push(void *ptr) {
 
 void button_reset_cycle_push(void *ptr) {
   set_initial_cylinder_states();
-  state_controller.set_reset_mode(1);
+  state_controller.set_reset_mode(true);
   clear_text_field("t4");
   hide_info_field();
 }
@@ -906,7 +908,6 @@ void setup() {
   cycle_steps.push_back(new Sledge_back);
   cycle_steps.push_back(new Cut_strap);
   cycle_steps.push_back(new Feed_straps);
-  //cycle_steps.push_back(new Brake);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
   int no_of_cycle_steps = Cycle_step::object_count;
@@ -943,7 +944,7 @@ void loop() {
 
   // RESET RIG IF RESET IS ACTIVATED:
   if (state_controller.reset_mode_is_active()) {
-    //   reset_test_rig();
+    reset_machine();
   }
 
   // IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
@@ -963,7 +964,7 @@ void loop() {
   manage_traffic_light();
 
   // DISPLAY DEBUG INFOMATION:
-  long runtime = measure_runtime();
+  unsigned long runtime = measure_runtime();
   if (print_interval_timeout.has_timed_out()) {
     //Serial.println(runtime);
     //print_cylinder_states();
