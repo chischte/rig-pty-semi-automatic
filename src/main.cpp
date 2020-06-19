@@ -574,7 +574,7 @@ void nextion_display_setup() {
   setup_display_event_callback_functions();
   traffic_light.set_info_start();
 
-  delay(2000);
+  delay(4000);
   sendCommand("page 1"); // switch display to page x
   send_to_nextion();
 }
