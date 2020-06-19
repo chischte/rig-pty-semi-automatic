@@ -101,7 +101,8 @@ Debounce sensor_sledge_endposition(CONTROLLINO_A1);
 Debounce sensor_upper_strap(CONTROLLINO_A2);
 Debounce sensor_lower_strap(CONTROLLINO_A3);
 
-Insomnia motor_output_timeout; // to prevent overheating
+Insomnia motor_output_timeout(120000); // to prevent overheating
+Insomnia motor_display_sleep_timeout(90000); // to inform that brakes will soon release
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
 Insomnia cycle_step_delay;
@@ -208,6 +209,7 @@ void motor_output_enable() {
   motor_upper_enable.set(1);
   motor_lower_enable.set(1);
   motor_output_timeout.reset_time();
+  motor_display_sleep_timeout.reset_time();
 }
 
 void motor_output_disable() {
@@ -263,11 +265,11 @@ void manage_traffic_light() {
   }
 
   // GO TO SLEEP:
-  if (traffic_light.is_in_user_do_stuff_state() && motor_output_timeout.has_timed_out()) {
+  if (traffic_light.is_in_user_do_stuff_state() && motor_display_sleep_timeout.has_timed_out()) {
     traffic_light.set_info_sleep();
   }
   // WAKE UP:
-  if (traffic_light.is_in_sleep_state() && !motor_output_timeout.has_timed_out()) {
+  if (traffic_light.is_in_sleep_state() && !motor_display_sleep_timeout.has_timed_out()) {
     traffic_light.set_info_user_do_stuff();
   }
 }
@@ -883,7 +885,7 @@ void setup_stepper_motors() {
   digitalWrite(LOWER_MOTOR_DIRECTION_PIN, HIGH);
 
   // SET MAX ENABLE AND BRAKE TIME:
-  motor_output_timeout.set_time(60000); // to prevent overheating
+  //motor_output_timeout.set_time(60000); // to prevent overheating
 }
 
 // MAIN SETUP ******************************************************************
