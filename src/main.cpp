@@ -11,8 +11,7 @@
  * Measured runtime in idle: about 130 micros
  * *****************************************************************************
  * TODO:
- * Show startscreen after startup
- * Install traffic light
+ * Implement pressure measurement
  * Make air release even faster
  * Wait a short while after moving sledge back
  * 
@@ -95,6 +94,7 @@ Cylinder motor_upper_enable(CONTROLLINO_D2);
 Cylinder motor_lower_enable(CONTROLLINO_D5);
 Cylinder motor_upper_pulse(CONTROLLINO_D8);
 Cylinder motor_lower_pulse(CONTROLLINO_D9);
+Cylinder green_light_lamp(CONTROLLINO_D11);
 
 Debounce sensor_sledge_startposition(CONTROLLINO_A0);
 Debounce sensor_sledge_endposition(CONTROLLINO_A1);
@@ -258,7 +258,9 @@ void print_cylinder_states() {
                  motor_lower_enable.get_state());
 }
 
-void manage_traffic_light() {
+void manage_green_light_lamp() { green_light_lamp.set(traffic_light.is_in_user_do_stuff_state()); }
+
+void manage_traffic_lights() {
 
   // SHOW START SCREEN:
   if (!traffic_light.is_in_start_state() && !state_controller.machine_is_running()) {
@@ -273,6 +275,8 @@ void manage_traffic_light() {
   if (traffic_light.is_in_sleep_state() && !motor_display_sleep_timeout.has_timed_out()) {
     traffic_light.set_info_user_do_stuff();
   }
+
+  manage_green_light_lamp();
 }
 
 long measure_runtime() {
@@ -961,8 +965,8 @@ void loop() {
     // std::cout << "---------------\n\n";
   }
 
-  // MANAGE TRAFFIC LIGHT:
-  manage_traffic_light();
+  // MANAGE TRAFFIC LIGHTS:
+  manage_traffic_lights();
 
   // DISPLAY DEBUG INFOMATION:
   unsigned long runtime = measure_runtime();
