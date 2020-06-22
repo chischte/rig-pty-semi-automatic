@@ -12,10 +12,7 @@
  * *****************************************************************************
  * TODO:
  * Implement pressure measurement
- * Switch of green light and traffic light when brake is disabled;
  * Make air release even faster
- * Wait a short while after moving sledge back
- * 
  */
 
 // INCLUDE HEADERS *************************************************************
@@ -182,7 +179,6 @@ std::vector<Cycle_step *> cycle_steps;
 // NON NEXTION FUNCTIONS *******************************************************
 
 void set_initial_cylinder_states() {
-  //cylinder_sledge_vent.invert_cylinder_logic(1);
   cylinder_blade.set(0);
   cylinder_frontclap.set(0);
   cylinder_sledge_inlet.set(0);
@@ -191,6 +187,10 @@ void set_initial_cylinder_states() {
   motor_upper_pulse.set(0);
   motor_lower_enable.set(0);
   motor_lower_pulse.set(0);
+}
+
+void reset_flag_of_current_step() {
+  cycle_steps[state_controller.get_current_step()]->reset_flags();
 }
 
 void stop_machine() {
@@ -205,6 +205,7 @@ void reset_machine() {
   clear_text_field("t4");
   hide_info_field();
   state_controller.set_current_step_to(0);
+  reset_flag_of_current_step();
   state_controller.set_reset_mode(false);
 }
 
@@ -292,10 +293,6 @@ long measure_runtime() {
   long time_elapsed = micros() - previous_micros;
   previous_micros = micros();
   return time_elapsed;
-}
-
-void reset_flag_of_current_step() {
-  cycle_steps[state_controller.get_current_step()]->reset_flags();
 }
 
 void move_sledge() {
