@@ -12,6 +12,7 @@
  * *****************************************************************************
  * TODO:
  * Implement pressure measurement
+ * Switch of green light and traffic light when brake is disabled;
  * Make air release even faster
  * Wait a short while after moving sledge back
  * 
@@ -95,6 +96,7 @@ Cylinder motor_lower_enable(CONTROLLINO_D5);
 Cylinder motor_upper_pulse(CONTROLLINO_D8);
 Cylinder motor_lower_pulse(CONTROLLINO_D9);
 Cylinder green_light_lamp(CONTROLLINO_D11);
+Cylinder orange_light_lamp(CONTROLLINO_D10);
 
 Debounce sensor_sledge_startposition(CONTROLLINO_A0);
 Debounce sensor_sledge_endposition(CONTROLLINO_A1);
@@ -258,7 +260,13 @@ void print_cylinder_states() {
                  motor_lower_enable.get_state());
 }
 
-void manage_green_light_lamp() { green_light_lamp.set(traffic_light.is_in_user_do_stuff_state()); }
+void manage_signal_lights() {
+  green_light_lamp.set(traffic_light.is_in_user_do_stuff_state());
+    if (!motor_upper_enable.get_state()) {
+    green_light_lamp.set(0);
+    orange_light_lamp.set(!green_light_lamp.get_state());
+  }
+}
 
 void manage_traffic_lights() {
 
@@ -276,7 +284,7 @@ void manage_traffic_lights() {
     traffic_light.set_info_user_do_stuff();
   }
 
-  manage_green_light_lamp();
+  manage_signal_lights();
 }
 
 long measure_runtime() {
