@@ -96,7 +96,7 @@ Cylinder motor_lower_enable(CONTROLLINO_D5);
 Cylinder motor_upper_pulse(CONTROLLINO_D8);
 Cylinder motor_lower_pulse(CONTROLLINO_D9);
 Cylinder green_light_lamp(CONTROLLINO_D11);
-Cylinder orange_light_lamp(CONTROLLINO_D10);
+Cylinder red_light_lamp(CONTROLLINO_D10);
 
 Debounce sensor_sledge_startposition(CONTROLLINO_A0);
 Debounce sensor_sledge_endposition(CONTROLLINO_A1);
@@ -262,10 +262,10 @@ void print_cylinder_states() {
 
 void manage_signal_lights() {
   green_light_lamp.set(traffic_light.is_in_user_do_stuff_state());
-    if (!motor_upper_enable.get_state()) {
+  if (!motor_upper_enable.get_state()) {
     green_light_lamp.set(0);
-    orange_light_lamp.set(!green_light_lamp.get_state());
   }
+  red_light_lamp.set(!green_light_lamp.get_state());
 }
 
 void manage_traffic_lights() {
