@@ -78,6 +78,8 @@ const byte UPPER_MOTOR_DIRECTION_PIN = CONTROLLINO_D1;
 const byte LOWER_MOTOR_STEP_PIN = CONTROLLINO_D3;
 const byte LOWER_MOTOR_DIRECTION_PIN = CONTROLLINO_D4;
 
+const byte PRESSURE_SENSOR_PIN = CONTROLLINO_A2;
+
 // GENERATE OBJECTS ************************************************************
 
 EEPROM_Counter counter;
@@ -97,8 +99,8 @@ Cylinder red_light_lamp(CONTROLLINO_D10);
 
 Debounce sensor_sledge_startposition(CONTROLLINO_A0);
 Debounce sensor_sledge_endposition(CONTROLLINO_A1);
-Debounce sensor_upper_strap(CONTROLLINO_A2);
-Debounce sensor_lower_strap(CONTROLLINO_A3);
+// Debounce sensor_upper_strap(CONTROLLINO_A2);
+// Debounce sensor_lower_strap(CONTROLLINO_A3);
 
 Insomnia motor_output_timeout(120000); // to prevent overheating
 Insomnia motor_display_sleep_timeout(90000); // to inform that brakes will soon release
@@ -762,6 +764,7 @@ class User_do_stuff : public Cycle_step {
     motor_output_enable();
     traffic_light.set_info_user_do_stuff();
     substep = 0;
+    show_info_field();
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
@@ -972,6 +975,30 @@ void loop() {
 
   // MANAGE TRAFFIC LIGHTS:
   manage_traffic_lights();
+
+  // MEASURE AND DISPLAY PRESSURE
+  static const float voltsPerUnit = 0.03; // Controllino datasheet
+  static const float max_sensor_voltage = 10; // Sensor datasheet
+  static const float max_sensor_pressure = 10;
+  
+  float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
+  float sensor_voltage = sensor_adc_value * voltsPerUnit;
+  float pressure = sensor_voltage / max_sensor_voltage * max_sensor_pressure;
+  // area of both cylinders without rod:
+  float cylinder_area = 15080; // [mm^2] measured from CAD
+  float float_force = cylinder_area * pressure / 10; // 10 to convert from [bar] to [N/mm^2]
+  int force = int(float_force);
+  // UPDATE DISPLAY ONLY IF VALUE CHANGED ENOUGH:
+  
+  static int previous_force = 0;
+  static int min_difference = 100;
+  
+  if (abs(previous_force - force) > min_difference) {
+    String force_string = String(force);
+    String suffix = " N";
+    display_text_in_info_field(force_string + suffix);
+    previous_force = force;
+  }
 
   // DISPLAY DEBUG INFOMATION:
   unsigned long runtime = measure_runtime();
