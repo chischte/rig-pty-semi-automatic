@@ -11,8 +11,8 @@
  * Measured runtime in idle: about 130 micros
  * *****************************************************************************
  * TODO:
- * Implement pressure measurement
  * Make air release even faster
+ * Speed up Cutter speed when safety shields are installed
  */
 
 // INCLUDE HEADERS *************************************************************
@@ -41,6 +41,7 @@ void display_loop_page_1_left_side();
 void display_loop_page_1_right_side();
 void display_loop_page_2_left_side();
 void display_loop_page_2_right_side();
+void display_text_in_info_field(String text);
 void update_traffic_light_field();
 void set_traffic_light_field_text(String text);
 void set_traffic_light_field_color(String color);
@@ -311,6 +312,32 @@ void block_sledge() {
 void vent_sledge() {
   cylinder_sledge_inlet.set(0);
   cylinder_sledge_vent.set(0);
+}
+
+void measure_and_display_force() {
+  static const float voltsPerUnit = 0.03; // Controllino datasheet
+  static const float max_sensor_voltage = 10; // Sensor datasheet
+  static const float max_sensor_pressure = 10; // [barg]
+
+  float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
+  float sensor_voltage = sensor_adc_value * voltsPerUnit;
+  float pressure = sensor_voltage / max_sensor_voltage * max_sensor_pressure;
+  // area of both cylinders without rod:
+  float cylinder_area = 15080; // [mm^2] measured from CAD
+  float float_force = cylinder_area * pressure / 10; // 10 to convert from [bar] to [N/mm^2]
+  int force = int(float_force);
+  // UPDATE DISPLAY ONLY IF VALUE CHANGED ENOUGH:
+
+  static int previous_force = 0;
+  static int min_difference = 10;
+  if (pressure_update_delay.delay_time_is_up(300)) {
+    if (abs(previous_force - force) > min_difference) {
+      String force_string = String(force);
+      String suffix = " N";
+      display_text_in_info_field(force_string + suffix);
+      previous_force = force;
+    }
+  }
 }
 
 // NEXTION GENERAL DISPLAY FUNCTIONS *******************************************
@@ -766,6 +793,7 @@ class User_do_stuff : public Cycle_step {
     traffic_light.set_info_user_do_stuff();
     substep = 0;
     show_info_field();
+    display_text_in_info_field("ZUGKRAFT");
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
@@ -773,7 +801,7 @@ class User_do_stuff : public Cycle_step {
       substep = 1;
     }
     if (substep == 1) {
-      if (cycle_step_delay.delay_time_is_up(3500)) {
+      if (cycle_step_delay.delay_time_is_up(3000)) {
         counter.count_one_up(shorttime_counter);
         counter.count_one_up(longtime_counter);
         set_loop_completed();
@@ -803,6 +831,7 @@ class Release_brake : public Cycle_step {
 
   void do_initial_stuff() {
     vent_sledge();
+    hide_info_field();
     traffic_light.set_info_machine_do_stuff();
     motor_output_disable();
     cycle_step_delay.set_unstarted();
@@ -978,29 +1007,7 @@ void loop() {
   manage_traffic_lights();
 
   // MEASURE AND DISPLAY PRESSURE
-  static const float voltsPerUnit = 0.03; // Controllino datasheet
-  static const float max_sensor_voltage = 10; // Sensor datasheet
-  static const float max_sensor_pressure = 10; // [barg]
-
-  float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
-  float sensor_voltage = sensor_adc_value * voltsPerUnit;
-  float pressure = sensor_voltage / max_sensor_voltage * max_sensor_pressure;
-  // area of both cylinders without rod:
-  float cylinder_area = 15080; // [mm^2] measured from CAD
-  float float_force = cylinder_area * pressure / 10; // 10 to convert from [bar] to [N/mm^2]
-  int force = int(float_force);
-  // UPDATE DISPLAY ONLY IF VALUE CHANGED ENOUGH:
-
-  static int previous_force = 0;
-  static int min_difference = 100;
-  if (pressure_update_delay.delay_time_is_up(300)) {
-    if (abs(previous_force - force) > min_difference) {
-      String force_string = String(force);
-      String suffix = " N";
-      display_text_in_info_field(force_string + suffix);
-      previous_force = force;
-    }
-  }
+  measure_and_display_force();
 
   // DISPLAY DEBUG INFOMATION:
   unsigned long runtime = measure_runtime();
