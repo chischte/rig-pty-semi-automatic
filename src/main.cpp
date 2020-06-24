@@ -823,7 +823,7 @@ class Sledge_back : public Cycle_step {
   }
   void do_loop_stuff() {
     if (sensor_sledge_startposition.get_button_state()) {
-      block_sledge();
+      vent_sledge();
       set_loop_completed();
     }
   }
