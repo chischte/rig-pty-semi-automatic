@@ -106,6 +106,7 @@ Insomnia motor_output_timeout(120000); // to prevent overheating
 Insomnia motor_display_sleep_timeout(90000); // to inform that brakes will soon release
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
+Insomnia pressure_update_delay;
 Insomnia cycle_step_delay;
 Insomnia upper_feed_delay;
 Insomnia lower_feed_delay;
@@ -979,8 +980,8 @@ void loop() {
   // MEASURE AND DISPLAY PRESSURE
   static const float voltsPerUnit = 0.03; // Controllino datasheet
   static const float max_sensor_voltage = 10; // Sensor datasheet
-  static const float max_sensor_pressure = 10;
-  
+  static const float max_sensor_pressure = 10; // [barg]
+
   float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
   float sensor_voltage = sensor_adc_value * voltsPerUnit;
   float pressure = sensor_voltage / max_sensor_voltage * max_sensor_pressure;
@@ -989,15 +990,16 @@ void loop() {
   float float_force = cylinder_area * pressure / 10; // 10 to convert from [bar] to [N/mm^2]
   int force = int(float_force);
   // UPDATE DISPLAY ONLY IF VALUE CHANGED ENOUGH:
-  
+
   static int previous_force = 0;
   static int min_difference = 100;
-  
-  if (abs(previous_force - force) > min_difference) {
-    String force_string = String(force);
-    String suffix = " N";
-    display_text_in_info_field(force_string + suffix);
-    previous_force = force;
+  if (pressure_update_delay.delay_time_is_up(300)) {
+    if (abs(previous_force - force) > min_difference) {
+      String force_string = String(force);
+      String suffix = " N";
+      display_text_in_info_field(force_string + suffix);
+      previous_force = force;
+    }
   }
 
   // DISPLAY DEBUG INFOMATION:
