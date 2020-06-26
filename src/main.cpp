@@ -820,7 +820,7 @@ class Release_air : public Cycle_step {
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (cycle_step_delay.delay_time_is_up(3000)) {
+    if (cycle_step_delay.delay_time_is_up(2000)) {
       set_loop_completed();
     }
   }
@@ -869,7 +869,7 @@ class Cut_strap : public Cycle_step {
     cylinder_frontclap.set(1);
   }
   void do_loop_stuff() {
-    cylinder_blade.stroke(2500, 1500);
+    cylinder_blade.stroke(2000, 1000);
     if (cylinder_blade.stroke_completed()) {
       cylinder_frontclap.set(0);
       set_loop_completed();
