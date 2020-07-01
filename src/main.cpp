@@ -107,7 +107,7 @@ Insomnia motor_output_timeout(120000); // to prevent overheating
 Insomnia motor_display_sleep_timeout(90000); // to inform that brakes will soon release
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
-Insomnia erase_force_value_timeout(10000);
+Insomnia erase_force_value_timeout(5000);
 Insomnia pressure_update_delay;
 Insomnia cycle_step_delay;
 Insomnia upper_feed_delay;
@@ -331,9 +331,9 @@ void measure_and_display_force() {
 
   static int previous_force = 0;
   //static int min_difference = 10;
-  if (pressure_update_delay.delay_time_is_up(200)) {
+  if (pressure_update_delay.delay_time_is_up(50)) {
     // if (abs(previous_force - force) > min_difference) {
-    if (force>previous_force) {
+    if (force > previous_force) {
       String force_string = String(force);
       String suffix = " N";
       display_text_in_info_field(force_string + suffix);
@@ -342,7 +342,7 @@ void measure_and_display_force() {
     }
   }
   if (erase_force_value_timeout.has_timed_out()) {
-    previous_force=0;
+    previous_force = -1; // negative to make certain value updates
     erase_force_value_timeout.reset_time();
   }
 }
