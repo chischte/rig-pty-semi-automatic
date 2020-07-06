@@ -329,20 +329,26 @@ void measure_and_display_force() {
   int force = int(float_force);
   // UPDATE DISPLAY ONLY IF VALUE CHANGED ENOUGH:
 
-  static int previous_force = 0;
+  static int previous_max_force = 0;
+  static int max_force = 0;
+
+  if (force > max_force) {
+    max_force = force;
+    erase_force_value_timeout.reset_time();
+  }
+
   //static int min_difference = 10;
   if (pressure_update_delay.delay_time_is_up(50)) {
-    // if (abs(previous_force - force) > min_difference) {
-    if (force > previous_force) {
-      String force_string = String(force);
+    if (max_force > previous_max_force) {
+      String max_force_string = String(max_force);
       String suffix = " N";
-      display_text_in_info_field(force_string + suffix);
-      previous_force = force;
-      erase_force_value_timeout.reset_time();
+      display_text_in_info_field(max_force_string + suffix);
+      previous_max_force = max_force;
     }
   }
   if (erase_force_value_timeout.has_timed_out()) {
-    previous_force = -1; // negative to make certain value updates
+    max_force = -1; // negative to make certain value updates
+    previous_max_force = -1;
     erase_force_value_timeout.reset_time();
   }
 }
