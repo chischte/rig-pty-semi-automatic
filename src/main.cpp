@@ -11,7 +11,8 @@
  * Measured runtime in idle: about 130 micros
  * *****************************************************************************
  * TODO:
- * Make air release even faster
+ * Clean up pressure measurement
+ * Close front shield earlier
  * Speed up Cutter speed when safety shields are installed
  */
 
@@ -255,15 +256,8 @@ void start_lower_motor() {
 void stop_lower_motor() { motor_lower_pulse.set(0); }
 
 unsigned long calculate_feedtime_from_mm(long mm) {
-  unsigned long feedtime = mm * 12;
+  unsigned long feedtime = mm * 17;
   return feedtime;
-}
-
-void print_cylinder_states() {
-  Serial.println("ZYLINDER_STATES: " + String(cylinder_sledge_vent.get_state()) +
-                 cylinder_blade.get_state() + cylinder_frontclap.get_state() +
-                 cylinder_sledge_inlet.get_state() + motor_upper_enable.get_state() +
-                 motor_lower_enable.get_state());
 }
 
 void manage_signal_lights() {
@@ -338,7 +332,7 @@ void measure_and_display_force() {
   }
 
   //static int min_difference = 10;
-  if (pressure_update_delay.delay_time_is_up(50)) {
+  if (pressure_update_delay.delay_time_is_up(50) && nex_current_page == 1) {
     if (max_force > previous_max_force) {
       String max_force_string = String(max_force);
       String suffix = " N";
@@ -512,7 +506,7 @@ void button_upper_slider_right_push(void *ptr) { increase_slider_value(upper_str
 void button_lower_slider_left_push(void *ptr) { decrease_slider_value(lower_strap_feed); }
 void button_lower_slider_right_push(void *ptr) { increase_slider_value(lower_strap_feed); }
 void increase_slider_value(int eeprom_value_number) {
-  long max_value = 300; // [mm]
+  long max_value = 350; // [mm]
   long interval = 5;
   long current_value = counter.get_value(eeprom_value_number);
 
