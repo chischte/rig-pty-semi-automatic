@@ -309,41 +309,53 @@ void vent_sledge() {
   cylinder_sledge_vent.set(0);
 }
 
-void measure_and_display_force() {
+void display_force(int force) {
+  if (pressure_update_delay.delay_time_is_up(50) && nex_current_page == 1) {
+    String force_string = String(force);
+    String suffix = " N";
+    display_text_in_info_field(force_string + suffix);
+  }
+}
+
+float calculate_pressure_from_adc(float sensor_adc_value) {
   static const float voltsPerUnit = 0.03; // Controllino datasheet
   static const float max_sensor_voltage = 10; // Sensor datasheet
   static const float max_sensor_pressure = 10; // [barg]
 
-  float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
   float sensor_voltage = sensor_adc_value * voltsPerUnit;
   float pressure = sensor_voltage / max_sensor_voltage * max_sensor_pressure;
-  // area of both cylinders without rod:
-  float cylinder_area = 15080; // [mm^2] measured from CAD
+  float cylinder_area = 15080; // [mm^2] measured from CAD, both cylinders without rod
   float float_force = cylinder_area * pressure / 10; // 10 to convert from [bar] to [N/mm^2]
-  int force = int(float_force);
-  // UPDATE DISPLAY ONLY IF VALUE CHANGED ENOUGH:
+  return int(float_force);
+}
 
-  static int previous_max_force = 0;
-  static int max_force = 0;
+void measure_and_display_force() {
 
-  if (force > max_force) {
-    max_force = force;
-    erase_force_value_timeout.reset_time();
-  }
+  float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
+  int force = calculate_pressure_from_adc(sensor_adc_value);
 
-  //static int min_difference = 10;
-  if (pressure_update_delay.delay_time_is_up(50) && nex_current_page == 1) {
+  if (state_controller.is_in_continuous_mode()) {
+
+  } else {
+
+    static int previous_max_force = 0;
+    static int max_force = 0;
+    if (force > max_force) {
+      max_force = force;
+      erase_force_value_timeout.reset_time();
+    }
+
     if (max_force > previous_max_force) {
-      String max_force_string = String(max_force);
-      String suffix = " N";
-      display_text_in_info_field(max_force_string + suffix);
+      display_force(max_force);
+
       previous_max_force = max_force;
     }
-  }
-  if (erase_force_value_timeout.has_timed_out()) {
-    max_force = -1; // negative to make certain value updates
-    previous_max_force = -1;
-    erase_force_value_timeout.reset_time();
+
+    if (erase_force_value_timeout.has_timed_out()) {
+      max_force = -1; // negative to make certain value updates
+      previous_max_force = -1;
+      erase_force_value_timeout.reset_time();
+    }
   }
 }
 

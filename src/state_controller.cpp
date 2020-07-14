@@ -17,11 +17,18 @@ void State_controller::set_step_mode() {
   _step_mode = true;
   _auto_mode = false;
 }
-
 bool State_controller::is_in_step_mode() { return _step_mode; }
 
+void State_controller::set_continuous_mode() { _continuous_mode = true; }
+
+void State_controller::reset_continuous_mode() { _continuous_mode = true; }
+
+bool State_controller::is_in_continuous_mode() { return _continuous_mode; }
+
 void State_controller::set_machine_running(bool machine_state) { _machine_running = machine_state; }
+
 void State_controller::set_machine_running() { _machine_running = true; }
+
 void State_controller::set_machine_stop() { _machine_running = false; }
 
 void State_controller::toggle_machine_running_state() { _machine_running = !_machine_running; }

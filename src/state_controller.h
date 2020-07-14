@@ -16,6 +16,10 @@ public:
   void set_auto_mode();
   bool is_in_auto_mode();
 
+  void set_continuous_mode();
+  void reset_continuous_mode();
+  bool is_in_continuous_mode();
+
   void set_machine_running(bool machine_state);
   void set_machine_running();
   void set_machine_stop();
@@ -50,5 +54,6 @@ private:
   bool _auto_mode;
   bool _reset_mode;
   bool _run_after_reset;
+  bool _continuous_mode;
 };
 #endif /* StateController_H_ */
