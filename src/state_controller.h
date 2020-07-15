@@ -67,7 +67,8 @@ private:
   // VARIABLES:
   int _number_of_main_cycle_steps;
   int _number_of_continuous_cycle_steps;
-  int _current_cycle_step;
+  int _current_main_cycle_step;
+  int _current_continuous_cycle_step;
   int _previous_cycle_step;
   bool _machine_running;
   bool _step_mode;

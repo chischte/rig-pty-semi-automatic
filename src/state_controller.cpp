@@ -5,10 +5,14 @@
 #include "state_controller.h"
 
 // CONSTRUCTORS ----------------------------------------------------------------
-State_controller::State_controller(int number_of_steps) { _number_of_main_cycle_steps = number_of_steps; }
+State_controller::State_controller(int number_of_steps) {
+  _number_of_main_cycle_steps = number_of_steps;
+}
 State_controller::State_controller() {}
 
-void State_controller::set_no_of_steps(int number_of_steps) { _number_of_main_cycle_steps = number_of_steps; }
+void State_controller::set_no_of_steps(int number_of_steps) {
+  _number_of_main_cycle_steps = number_of_steps;
+}
 
 // STEP MODE -------------------------------------------------------------------
 void State_controller::set_step_mode() {
@@ -94,12 +98,15 @@ bool State_controller::step_switch_has_happend() {
   return step_has_changed;
 }
 
-void State_controller::set_current_step_to(int cycle_step) { _current_main_cycle_step = cycle_step; }
+void State_controller::set_current_step_to(int cycle_step) {
+  _current_main_cycle_step = cycle_step;
+}
 
 // STEP MANAGEMENT CONTINUOUS MODE ---------------------------------------------
 
-void State_controller::set_no_of_continuous_steps(int number_of_steps) { _number_of_continuous_cycle_steps = number_of_steps; }
-
+void State_controller::set_no_of_continuous_steps(int number_of_steps) {
+  _number_of_continuous_cycle_steps = number_of_steps;
+}
 
 void State_controller::switch_to_next_continuous_step() {
   _current_continuous_cycle_step++;
@@ -108,7 +115,7 @@ void State_controller::switch_to_next_continuous_step() {
   }
 }
 
-int State_controller::get_current_step() {
-  int current_cycle_step = _current_main_cycle_step;
+int State_controller::get_current_continuous_step() {
+  int current_cycle_step = _current_continuous_cycle_step;
   return current_cycle_step;
 }

@@ -952,45 +952,76 @@ class Feed_straps : public Cycle_step {
 
 // CLASSES FOR CONTINUOUS MODE *************************************************
 
-class Continuous_release_air : public Cycle_step {
-  String get_display_text() { return "SPANNEN + CRIMPEN"; }
-  int substep = 0;
+class Continuous_release_air_timer : public Cycle_step {
+  String get_display_text() { return "RELEASE"; }
+  int substep = 1;
 
   void do_initial_stuff() {
     block_sledge();
     motor_output_enable();
     traffic_light.set_info_user_do_stuff();
-    substep = 0;
+    substep = 1;
     show_info_field();
     display_text_in_info_field("ZUGKRAFT");
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (sensor_sledge_endposition.switched_high()) {
-      substep = 1;
-    }
     if (substep == 1) {
-      if (cycle_step_delay.delay_time_is_up(3000)) {
-        counter.count_one_up(shorttime_counter);
-        counter.count_one_up(longtime_counter);
+      if (cycle_step_delay.delay_time_is_up(1500)) {
+        vent_sledge();
+        substep = 2;
+      }
+    }
+    if (substep == 2) {
+      if (cycle_step_delay.delay_time_is_up(100)) {
+        block_sledge();
+        substep = 1;
+      }
+
+      if (sensor_sledge_endposition.switched_high()) {
         set_loop_completed();
       }
     }
   }
 };
 //------------------------------------------------------------------------------
+class Continuous_vent : public Cycle_step {
+  String get_display_text() { return "ENTLUEFTEN"; }
+
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    vent_sledge();
+    cycle_step_delay.set_unstarted();
+  }
+  void do_loop_stuff() {
+    if (cycle_step_delay.delay_time_is_up(1000)) {
+      set_loop_completed();
+    }
+  }
+};
+
+//------------------------------------------------------------------------------
 class Continuous_sledge_back : public Cycle_step {
-  String get_display_text() { return "ZURUECKFAHREN"; }
+  String get_display_text() { return "MOVE BACK"; }
+  bool has_reached_startpoint = false;
 
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
     motor_output_disable();
-    move_sledge();
+    has_reached_startpoint = false;
+    cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
+
     if (sensor_sledge_startposition.get_button_state()) {
-      vent_sledge();
-      set_loop_completed();
+      has_reached_startpoint = true;
+    }
+
+    if (has_reached_startpoint) {
+      if (cycle_step_delay.delay_time_is_up(2000)) {
+        block_sledge();
+        set_loop_completed();
+      }
     }
   }
 };
@@ -1037,7 +1068,8 @@ void setup() {
   state_controller.set_no_of_steps(no_of_main_cycle_steps);
   //------------------------------------------------
   // PUSH THE STEPS FOR CONTINUOUS MODE IN A CONTAINER:
-  continuous_cycle_steps.push_back(new Continuous_release_air);
+  continuous_cycle_steps.push_back(new Continuous_release_air_timer);
+  continuous_cycle_steps.push_back(new Continuous_vent);
   continuous_cycle_steps.push_back(new Continuous_sledge_back);
   int no_of_continuous_cycle_steps = continuous_cycle_steps.size();
   state_controller.set_no_of_continuous_steps(no_of_continuous_cycle_steps);
