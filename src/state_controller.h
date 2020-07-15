@@ -1,24 +1,21 @@
-/*******************************************************************************
+/* *****************************************************************************
  * state_controller.h **********************************************************
  * *****************************************************************************
- * MAIN OPERATION MODES:
+ * MAIN OPERATION MODES :
+ * 
  * 1) step_mode
  * 
  * 2) auto_mode
- *   
- * 3) continuous_operation_mode
+ * 
+ * 3) continuous_operation_mode (separate step management)
  *
- * 4) reset mode can run independently, on top of all other modes
+ * 4) reset mode (reset can run independently, on top of all other modes)
  * 
  * *****************************************************************************
  */
 
 #ifndef StateController_H_
 #define StateController_H_
-
-/* 
-
-*/
 
 class State_controller {
 
@@ -36,8 +33,13 @@ public:
   bool is_in_auto_mode();
 
   void set_continuous_mode();
-  void reset_continuous_mode();
   bool is_in_continuous_mode();
+
+  void set_reset_mode(bool reset_state);
+  bool reset_mode_is_active();
+
+  void set_run_after_reset(bool run_after_reset);
+  bool run_after_reset_is_active();
 
   void set_machine_running(bool machine_state);
   void set_machine_running();
@@ -51,11 +53,9 @@ public:
   int get_current_step();
   bool step_switch_has_happend();
 
-  void set_reset_mode(bool reset_state);
-  bool reset_mode_is_active();
-
-  void set_run_after_reset(bool run_after_reset);
-  bool run_after_reset_is_active();
+  void set_no_of_continuous_steps(int number_of_steps);
+  void switch_to_next_continuous_step();
+  int get_current_continuous_step();
 
   // VARIABLES:
   // n.a.
@@ -65,7 +65,8 @@ private:
   // n.a.
 
   // VARIABLES:
-  int _number_of_steps;
+  int _number_of_main_cycle_steps;
+  int _number_of_continuous_cycle_steps;
   int _current_cycle_step;
   int _previous_cycle_step;
   bool _machine_running;

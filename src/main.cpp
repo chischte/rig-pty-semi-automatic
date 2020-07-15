@@ -17,8 +17,6 @@
  * *****************************************************************************
  */
 
-
-
 // INCLUDE HEADERS *************************************************************
 
 #include <ArduinoSTL.h> //          https://github.com/mike-matera/ArduinoSTL
@@ -183,7 +181,8 @@ long nex_longtime_counter;
 // CREATE VECTOR CONTAINER FOR THE CYCLE STEPS OBJECTS ************************
 
 int Cycle_step::object_count = 0; // enable object counting
-std::vector<Cycle_step *> cycle_steps;
+std::vector<Cycle_step *> main_cycle_steps;
+std::vector<Cycle_step *> continuous_cycle_steps;
 
 // NON NEXTION FUNCTIONS *******************************************************
 
@@ -199,7 +198,7 @@ void set_initial_cylinder_states() {
 }
 
 void reset_flag_of_current_step() {
-  cycle_steps[state_controller.get_current_step()]->reset_flags();
+  main_cycle_steps[state_controller.get_current_step()]->reset_flags();
 }
 
 void stop_machine() {
@@ -313,7 +312,7 @@ void vent_sledge() {
 }
 
 void display_force(int force) {
-  if (pressure_update_delay.delay_time_is_up(50) && nex_current_page == 1) {
+  if (nex_current_page == 1) {
     String force_string = String(force);
     String suffix = " N";
     display_text_in_info_field(force_string + suffix);
@@ -332,33 +331,42 @@ float calculate_pressure_from_adc(float sensor_adc_value) {
   return int(float_force);
 }
 
-void measure_and_display_force() {
-
+int measure_force() {
   float sensor_adc_value = analogRead(PRESSURE_SENSOR_PIN);
   int force = calculate_pressure_from_adc(sensor_adc_value);
+  return force;
+}
 
-  if (state_controller.is_in_continuous_mode()) {
+void measure_and_display_max_force() {
+  int force = measure_force();
+  static int max_force;
+  static int previous_max_force;
 
-  } else {
+  if (force > max_force) {
+    max_force = force;
+    erase_force_value_timeout.reset_time();
+  }
 
-    static int previous_max_force = 0;
-    static int max_force = 0;
-    if (force > max_force) {
-      max_force = force;
-      erase_force_value_timeout.reset_time();
-    }
+  if (max_force > previous_max_force && pressure_update_delay.delay_time_is_up(50)) {
+    display_force(max_force);
+    previous_max_force = max_force;
+  }
 
-    if (max_force > previous_max_force) {
-      display_force(max_force);
+  if (erase_force_value_timeout.has_timed_out()) {
+    max_force = -1; // negative to make certain value updates
+    previous_max_force = -1;
+    erase_force_value_timeout.reset_time();
+  }
+}
 
-      previous_max_force = max_force;
-    }
+void measure_and_display_current_force() {
+  int force = measure_force();
+  static int previous_force;
+  static int min_difference = 50;
 
-    if (erase_force_value_timeout.has_timed_out()) {
-      max_force = -1; // negative to make certain value updates
-      previous_max_force = -1;
-      erase_force_value_timeout.reset_time();
-    }
+  if (abs(force - previous_force) >= min_difference && pressure_update_delay.delay_time_is_up(50)) {
+    display_force(force);
+    previous_force = force;
   }
 }
 
@@ -686,7 +694,7 @@ void update_cycle_name() {
 
 String get_display_string() {
   int current_step = state_controller.get_current_step();
-  String display_text_cycle_name = cycle_steps[current_step]->get_display_text();
+  String display_text_cycle_name = main_cycle_steps[current_step]->get_display_text();
   return display_text_cycle_name;
 }
 
@@ -803,6 +811,7 @@ void reset_lower_counter_value() {
 }
 
 // CLASSES FOR THE MAIN CYCLE STEPS ********************************************
+// STEP-MODE AND AUTO MODE
 
 //------------------------------------------------------------------------------
 class User_do_stuff : public Cycle_step {
@@ -941,6 +950,55 @@ class Feed_straps : public Cycle_step {
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 
+// CLASSES FOR CONTINUOUS MODE *************************************************
+
+class Continuous_release_air : public Cycle_step {
+  String get_display_text() { return "SPANNEN + CRIMPEN"; }
+  int substep = 0;
+
+  void do_initial_stuff() {
+    block_sledge();
+    motor_output_enable();
+    traffic_light.set_info_user_do_stuff();
+    substep = 0;
+    show_info_field();
+    display_text_in_info_field("ZUGKRAFT");
+    cycle_step_delay.set_unstarted();
+  }
+  void do_loop_stuff() {
+    if (sensor_sledge_endposition.switched_high()) {
+      substep = 1;
+    }
+    if (substep == 1) {
+      if (cycle_step_delay.delay_time_is_up(3000)) {
+        counter.count_one_up(shorttime_counter);
+        counter.count_one_up(longtime_counter);
+        set_loop_completed();
+      }
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Continuous_sledge_back : public Cycle_step {
+  String get_display_text() { return "ZURUECKFAHREN"; }
+
+  void do_initial_stuff() {
+    traffic_light.set_info_machine_do_stuff();
+    motor_output_disable();
+    move_sledge();
+  }
+  void do_loop_stuff() {
+    if (sensor_sledge_startposition.get_button_state()) {
+      vent_sledge();
+      set_loop_completed();
+    }
+  }
+};
+
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+//------------------------------------------------------------------------------
+
 // STEPPER MOTOR SETUP *********************************************************
 
 void setup_stepper_motors() {
@@ -967,16 +1025,22 @@ void setup() {
   //------------------------------------------------
   // PUSH THE CYCLE STEPS INTO THE VECTOR CONTAINER:
   // PUSH SEQUENCE = CYCLE SEQUENCE!
-  cycle_steps.push_back(new User_do_stuff);
-  cycle_steps.push_back(new Release_air);
-  cycle_steps.push_back(new Release_brake);
-  cycle_steps.push_back(new Sledge_back);
-  cycle_steps.push_back(new Cut_strap);
-  cycle_steps.push_back(new Feed_straps);
+  main_cycle_steps.push_back(new User_do_stuff);
+  main_cycle_steps.push_back(new Release_air);
+  main_cycle_steps.push_back(new Release_brake);
+  main_cycle_steps.push_back(new Sledge_back);
+  main_cycle_steps.push_back(new Cut_strap);
+  main_cycle_steps.push_back(new Feed_straps);
   //------------------------------------------------
   // CONFIGURE THE STATE CONTROLLER:
-  int no_of_cycle_steps = Cycle_step::object_count;
-  state_controller.set_no_of_steps(no_of_cycle_steps);
+  int no_of_main_cycle_steps = main_cycle_steps.size();
+  state_controller.set_no_of_steps(no_of_main_cycle_steps);
+  //------------------------------------------------
+  // PUSH THE STEPS FOR CONTINUOUS MODE IN A CONTAINER:
+  continuous_cycle_steps.push_back(new Continuous_release_air);
+  continuous_cycle_steps.push_back(new Continuous_sledge_back);
+  int no_of_continuous_cycle_steps = continuous_cycle_steps.size();
+  state_controller.set_no_of_continuous_steps(no_of_continuous_cycle_steps);
   //------------------------------------------------
   // SETUP COUNTER:
   counter.setup(0, 1023, counter_no_of_values);
@@ -993,23 +1057,12 @@ void setup() {
 
 // MAIN LOOP *******************************************************************
 
-void loop() {
-
-  // UPDATE DISPLAY:
-  nextion_display_loop();
-
-  // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING
-  monitor_motor_output();
+void run_step_or_auto_mode() {
 
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
-  if (cycle_steps[state_controller.get_current_step()]->is_completed()) {
+  if (main_cycle_steps[state_controller.get_current_step()]->is_completed()) {
     state_controller.switch_to_next_step();
     reset_flag_of_current_step();
-  }
-
-  // RESET RIG IF RESET IS ACTIVATED:
-  if (state_controller.reset_mode_is_active()) {
-    reset_machine();
   }
 
   // IN STEP MODE, THE RIG STOPS AFTER EVERY COMPLETED STEP:
@@ -1021,21 +1074,59 @@ void loop() {
 
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
   if (state_controller.machine_is_running()) {
-    cycle_steps[state_controller.get_current_step()]->do_stuff();
-    // std::cout << "---------------\n\n";
+    main_cycle_steps[state_controller.get_current_step()]->do_stuff();
+  }
+
+  // MEASURE AND DISPLAY PRESSURE
+  measure_and_display_max_force();
+}
+
+void run_continuous_mode() {
+  // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
+  if (continuous_cycle_steps[state_controller.get_current_continuous_step()]->is_completed()) {
+    state_controller.switch_to_next_continuous_step();
+    reset_flag_of_current_step();
+  }
+
+  // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
+  if (state_controller.machine_is_running()) {
+    continuous_cycle_steps[state_controller.get_current_continuous_step()]->do_stuff();
+  }
+
+  // MEASURE AND DISPLAY PRESSURE
+  measure_and_display_current_force();
+}
+
+void loop() {
+
+  // UPDATE DISPLAY:
+  nextion_display_loop();
+
+  // MONITOR MOTOR BRAKE TO PREVENT FROM OVERHEATING:
+  monitor_motor_output();
+
+  // RUN STEP OR AUTO MODE:
+  if (state_controller.is_in_step_mode() || state_controller.is_in_auto_mode()) {
+    run_step_or_auto_mode();
+  }
+
+  // RUN CONTINUOUS MODE:
+  if (state_controller.is_in_continuous_mode()) {
+    run_continuous_mode();
+  }
+
+  // RESET RIG IF RESET IS ACTIVATED:
+  if (state_controller.reset_mode_is_active()) {
+    reset_machine();
   }
 
   // MANAGE TRAFFIC LIGHTS:
   manage_traffic_lights();
 
-  // MEASURE AND DISPLAY PRESSURE
-  measure_and_display_force();
-
   // DISPLAY DEBUG INFOMATION:
   unsigned long runtime = measure_runtime();
   if (print_interval_timeout.has_timed_out()) {
     //Serial.println(runtime);
-    //print_cylinder_states();
     print_interval_timeout.reset_time();
   }
 }
