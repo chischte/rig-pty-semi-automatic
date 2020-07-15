@@ -1,29 +1,38 @@
+/*******************************************************************************
+ * state_controller.cpp ********************************************************
+ *******************************************************************************/
+
 #include "state_controller.h"
 
+// CONSTRUCTORS ----------------------------------------------------------------
 State_controller::State_controller(int number_of_steps) { _number_of_steps = number_of_steps; }
 State_controller::State_controller() {}
-//***************************************************************************
-//LIBRARY FUNCTIONS:
-//***************************************************************************
+
 void State_controller::set_no_of_steps(int number_of_steps) { _number_of_steps = number_of_steps; }
 
-void State_controller::set_auto_mode() {
-  _auto_mode = true;
-  _step_mode = false;
-}
-bool State_controller::is_in_auto_mode() { return _auto_mode; }
-
+// STEP MODE -------------------------------------------------------------------
 void State_controller::set_step_mode() {
   _step_mode = true;
   _auto_mode = false;
 }
 bool State_controller::is_in_step_mode() { return _step_mode; }
 
+// AUTO MODE -------------------------------------------------------------------
+void State_controller::set_auto_mode() {
+  _auto_mode = true;
+  _step_mode = false;
+}
+bool State_controller::is_in_auto_mode() { return _auto_mode; }
+
+// CONTINUOUS MODE -------------------------------------------------------------
 void State_controller::set_continuous_mode() { _continuous_mode = true; }
 
-void State_controller::reset_continuous_mode() { _continuous_mode = true; }
-
 bool State_controller::is_in_continuous_mode() { return _continuous_mode; }
+
+
+// MACHINE RUNNING -------------------------------------------------------------
+
+
 
 void State_controller::set_machine_running(bool machine_state) { _machine_running = machine_state; }
 

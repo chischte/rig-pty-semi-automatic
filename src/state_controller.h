@@ -1,5 +1,24 @@
+/*******************************************************************************
+ * state_controller.h **********************************************************
+ * *****************************************************************************
+ * MAIN OPERATION MODES:
+ * 1) step_mode
+ * 
+ * 2) auto_mode
+ *   
+ * 3) continuous_operation_mode
+ *
+ * 4) reset mode can run independently, on top of all other modes
+ * 
+ * *****************************************************************************
+ */
+
 #ifndef StateController_H_
 #define StateController_H_
+
+/* 
+
+*/
 
 class State_controller {
 
