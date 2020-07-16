@@ -1018,7 +1018,7 @@ class Feed_straps : public Cycle_step {
 // CLASSES FOR CONTINUOUS MODE *************************************************
 
 class Continuous_release_air_timer : public Cycle_step {
-  String get_display_text() { return "RELEASE"; }
+  String get_display_text() { return "PULSEN"; }
   int substep = 1;
 
   void do_initial_stuff() {
@@ -1053,7 +1053,7 @@ class Continuous_vent : public Cycle_step {
   String get_display_text() { return "ENTLUEFTEN"; }
 
   void do_initial_stuff() {
-    traffic_light.set_info_machine_do_stuff();
+    traffic_light.set_info_user_do_stuff();
     vent_sledge();
     cycle_step_delay.set_unstarted();
   }
@@ -1065,11 +1065,11 @@ class Continuous_vent : public Cycle_step {
 };
 //------------------------------------------------------------------------------
 class Continuous_sledge_back : public Cycle_step {
-  String get_display_text() { return "MOVE BACK"; }
+  String get_display_text() { return "ZURUECKFAHREN"; }
   bool has_reached_startpoint = false;
 
   void do_initial_stuff() {
-    traffic_light.set_info_machine_do_stuff();
+    traffic_light.set_info_user_do_stuff();
     motor_output_disable();
     move_sledge();
     has_reached_startpoint = false;
@@ -1082,7 +1082,7 @@ class Continuous_sledge_back : public Cycle_step {
     }
 
     if (has_reached_startpoint) {
-      if (cycle_step_delay.delay_time_is_up(2000)) {
+      if (cycle_step_delay.delay_time_is_up(4000)) {
         block_sledge();
         motor_output_enable();
         set_loop_completed();
