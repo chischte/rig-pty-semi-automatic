@@ -118,8 +118,8 @@ int State_controller::get_current_step() {
     current_cycle_step = _current_main_cycle_step;
   }
   if (_continuous_mode) {
+    current_cycle_step = _current_continuous_cycle_step;
   }
-  current_cycle_step = _current_continuous_cycle_step;
   return current_cycle_step;
 }
 

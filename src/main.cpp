@@ -176,8 +176,7 @@ bool nex_state_blade;
 bool nex_state_machine_running;
 bool nex_state_step_mode = true;
 bool nex_state_continuous_mode;
-byte nex_prev_main_cycle_step;
-byte nex_prev_continuous_cycle_step;
+byte nex_prev_cycle_step;
 byte nex_current_page = 0;
 long nex_upper_strap_feed;
 long nex_lower_strap_feed;
@@ -224,6 +223,7 @@ void reset_machine() {
   set_initial_cylinder_states();
   clear_text_field("t4");
   hide_info_field();
+  state_controller.set_step_mode();
   state_controller.set_current_step_to(0);
   reset_flag_of_current_step();
   state_controller.set_reset_mode(false);
@@ -593,8 +593,7 @@ void page_1_push(void *ptr) {
   hide_info_field();
 
   // REFRESH BUTTON STATES:
-  nex_prev_main_cycle_step = !state_controller.get_current_step();
-  //nex_prev_continuous_cycle_step = !state_controller.get_current_continuous_step();
+  nex_prev_cycle_step = !state_controller.get_current_step();
   nex_state_step_mode = true;
   nex_state_air_release = 1;
   nex_state_motor_brake = 0;
@@ -614,7 +613,7 @@ void update_field_values_page_2() {
   nex_lower_strap_feed = counter.get_value(nex_lower_strap_feed) - 1;
   nex_shorttime_counter = counter.get_value(nex_upper_strap_feed) - 1;
   nex_longtime_counter = counter.get_value(nex_upper_strap_feed) - 1;
-  nex_state_continuous_mode = false;
+  //nex_state_continuous_mode = true;
 }
 
 // DECLARE DISPLAY EVENT LISTENERS *********************************************
@@ -707,22 +706,22 @@ void display_loop_page_1_left_side() {
 }
 
 void update_main_cycle_name() {
-  if (nex_prev_main_cycle_step != state_controller.get_current_step()) {
+  if (nex_prev_cycle_step != state_controller.get_current_step()) {
     String number = String(state_controller.get_current_step() + 1);
     String name = get_main_cycle_display_string();
     Serial.println(number + " " + name);
     display_text_in_field(number + " " + name, "t0");
-    nex_prev_main_cycle_step = state_controller.get_current_step();
+    nex_prev_cycle_step = state_controller.get_current_step();
   }
 }
 
 void update_continuous_cycle_name() {
-  if (nex_prev_continuous_cycle_step != state_controller.get_current_step()) {
+  if (nex_prev_cycle_step != state_controller.get_current_step()) {
     String number = String(state_controller.get_current_step() + 1);
     String name = get_continuous_cycle_display_string();
     Serial.println(number + " " + name);
     display_text_in_field(number + " " + name, "t0");
-    nex_prev_continuous_cycle_step = state_controller.get_current_step();
+    nex_prev_cycle_step = state_controller.get_current_step();
   }
 }
 
@@ -733,14 +732,6 @@ void update_cycle_name() {
 
   if (state_controller.is_in_continuous_mode()) {
     update_continuous_cycle_name();
-  }
-
-  if (nex_prev_main_cycle_step != state_controller.get_current_step()) {
-    String number = String(state_controller.get_current_step() + 1);
-    String name = get_main_cycle_display_string();
-    Serial.println(number + " " + name);
-    display_text_in_field(number + " " + name, "t0");
-    nex_prev_main_cycle_step = state_controller.get_current_step();
   }
 }
 
@@ -1019,38 +1010,6 @@ class Feed_straps : public Cycle_step {
 
 // CLASSES FOR CONTINUOUS MODE *************************************************
 
-class Continuous_release_air_timer : public Cycle_step {
-  String get_display_text() { return "PULSEN"; }
-  int substep = 1;
-
-  void do_initial_stuff() {
-    block_sledge();
-    motor_output_enable();
-    traffic_light.set_info_user_do_stuff();
-    substep = 1;
-    show_info_field();
-    display_text_in_info_field("ZUGKRAFT");
-    cycle_step_delay.set_unstarted();
-  }
-  void do_loop_stuff() {
-    if (substep == 1) {
-      if (cycle_step_delay.delay_time_is_up(1500)) {
-        vent_sledge();
-        substep = 2;
-      }
-    }
-    if (substep == 2) {
-      if (cycle_step_delay.delay_time_is_up(100)) {
-        block_sledge();
-        substep = 1;
-      }
-    }
-    if (sensor_sledge_endposition.switched_high()) {
-      set_loop_completed();
-    }
-  }
-};
-//------------------------------------------------------------------------------
 class Continuous_vent : public Cycle_step {
   String get_display_text() { return "ENTLUEFTEN"; }
 
@@ -1089,6 +1048,38 @@ class Continuous_sledge_back : public Cycle_step {
         motor_output_enable();
         set_loop_completed();
       }
+    }
+  }
+};
+//------------------------------------------------------------------------------
+class Continuous_release_pulses : public Cycle_step {
+  String get_display_text() { return "PULSEN"; }
+  int substep = 1;
+
+  void do_initial_stuff() {
+    block_sledge();
+    motor_output_enable();
+    traffic_light.set_info_user_do_stuff();
+    substep = 1;
+    show_info_field();
+    display_text_in_info_field("ZUGKRAFT");
+    cycle_step_delay.set_unstarted();
+  }
+  void do_loop_stuff() {
+    if (substep == 1) {
+      if (cycle_step_delay.delay_time_is_up(1500)) {
+        vent_sledge();
+        substep = 2;
+      }
+    }
+    if (substep == 2) {
+      if (cycle_step_delay.delay_time_is_up(100)) {
+        block_sledge();
+        substep = 1;
+      }
+    }
+    if (sensor_sledge_endposition.switched_high()) {
+      set_loop_completed();
     }
   }
 };
@@ -1134,9 +1125,9 @@ void setup() {
   state_controller.set_no_of_steps(no_of_main_cycle_steps);
   //------------------------------------------------
   // PUSH THE STEPS FOR CONTINUOUS MODE IN A CONTAINER:
-  continuous_cycle_steps.push_back(new Continuous_release_air_timer);
   continuous_cycle_steps.push_back(new Continuous_vent);
   continuous_cycle_steps.push_back(new Continuous_sledge_back);
+  continuous_cycle_steps.push_back(new Continuous_release_pulses);
   int no_of_continuous_cycle_steps = continuous_cycle_steps.size();
   state_controller.set_no_of_continuous_steps(no_of_continuous_cycle_steps);
   //------------------------------------------------
