@@ -11,7 +11,6 @@
  * Measured runtime in idle: about 130 micros
  * -----------------------------------------------------------------------------
  * TODO:
- * Clean up pressure measurement
  * Close front shield earlier
  * Speed up Cutter speed when safety shields are installed
  * *****************************************************************************
@@ -57,7 +56,9 @@ void reset_lower_counter_value();
 void increase_slider_value(int eeprom_value_number);
 void decrease_slider_value(int eeprom_value_number);
 void update_field_values_page_2();
-String get_display_string();
+void show_info_field();
+String get_main_cycle_display_string();
+String get_continuous_cycle_display_string();
 String add_suffix_to_eeprom_value(int eeprom_value_number, String suffix);
 
 // DEFINE NAMES FOR THE CYCLE COUNTER ******************************************
@@ -175,7 +176,8 @@ bool nex_state_blade;
 bool nex_state_machine_running;
 bool nex_state_step_mode = true;
 bool nex_state_continuous_mode;
-byte nex_prev_cycle_step;
+byte nex_prev_main_cycle_step;
+byte nex_prev_continuous_cycle_step;
 byte nex_current_page = 0;
 long nex_upper_strap_feed;
 long nex_lower_strap_feed;
@@ -202,7 +204,13 @@ void set_initial_cylinder_states() {
 }
 
 void reset_flag_of_current_step() {
-  main_cycle_steps[state_controller.get_current_step()]->reset_flags();
+
+  if (state_controller.is_in_auto_mode() || state_controller.is_in_step_mode()) {
+    main_cycle_steps[state_controller.get_current_step()]->reset_flags();
+  }
+  if (state_controller.is_in_continuous_mode()) {
+    continuous_cycle_steps[state_controller.get_current_continuous_step()]->reset_flags();
+  }
 }
 
 void stop_machine() {
@@ -317,6 +325,7 @@ void vent_sledge() {
 
 void display_force(int force) {
   if (nex_current_page == 1) {
+    show_info_field();
     String force_string = String(force);
     String suffix = " N";
     display_text_in_info_field(force_string + suffix);
@@ -351,7 +360,7 @@ void measure_and_display_max_force() {
     erase_force_value_timeout.reset_time();
   }
 
-  if (max_force > previous_max_force && pressure_update_delay.delay_time_is_up(50)) {
+  if (max_force > previous_max_force && pressure_update_delay.delay_time_is_up(100)) {
     display_force(max_force);
     previous_max_force = max_force;
   }
@@ -368,7 +377,8 @@ void measure_and_display_current_force() {
   static int previous_force;
   static int min_difference = 50;
 
-  if (abs(force - previous_force) >= min_difference && pressure_update_delay.delay_time_is_up(50)) {
+  if (abs(force - previous_force) >= min_difference &&
+      pressure_update_delay.delay_time_is_up(100)) {
     display_force(force);
     previous_force = force;
   }
@@ -581,7 +591,8 @@ void page_1_push(void *ptr) {
   hide_info_field();
 
   // REFRESH BUTTON STATES:
-  nex_prev_cycle_step = !state_controller.get_current_step();
+  nex_prev_main_cycle_step = !state_controller.get_current_step();
+  nex_prev_continuous_cycle_step = !state_controller.get_current_continuous_step();
   nex_state_step_mode = true;
   nex_state_air_release = 1;
   nex_state_motor_brake = 0;
@@ -601,7 +612,7 @@ void update_field_values_page_2() {
   nex_lower_strap_feed = counter.get_value(nex_lower_strap_feed) - 1;
   nex_shorttime_counter = counter.get_value(nex_upper_strap_feed) - 1;
   nex_longtime_counter = counter.get_value(nex_upper_strap_feed) - 1;
-  nex_state_continuous_mode=false;
+  nex_state_continuous_mode = false;
 }
 
 // DECLARE DISPLAY EVENT LISTENERS *********************************************
@@ -693,19 +704,53 @@ void display_loop_page_1_left_side() {
   }
 }
 
-void update_cycle_name() {
-  if (nex_prev_cycle_step != state_controller.get_current_step()) {
+void update_main_cycle_name() {
+  if (nex_prev_main_cycle_step != state_controller.get_current_step()) {
     String number = String(state_controller.get_current_step() + 1);
-    String name = get_display_string();
+    String name = get_main_cycle_display_string();
     Serial.println(number + " " + name);
     display_text_in_field(number + " " + name, "t0");
-    nex_prev_cycle_step = state_controller.get_current_step();
+    nex_prev_main_cycle_step = state_controller.get_current_step();
   }
 }
 
-String get_display_string() {
+void update_continuous_cycle_name() {
+  if (nex_prev_continuous_cycle_step != state_controller.get_current_continuous_step()) {
+    String number = String(state_controller.get_current_continuous_step() + 1);
+    String name = get_continuous_cycle_display_string();
+    Serial.println(number + " " + name);
+    display_text_in_field(number + " " + name, "t0");
+    nex_prev_continuous_cycle_step = state_controller.get_current_continuous_step();
+  }
+}
+
+void update_cycle_name() {
+  if (state_controller.is_in_step_mode() || state_controller.is_in_auto_mode()) {
+    update_main_cycle_name();
+  }
+
+  if (state_controller.is_in_continuous_mode()) {
+    update_continuous_cycle_name();
+  }
+
+  if (nex_prev_main_cycle_step != state_controller.get_current_step()) {
+    String number = String(state_controller.get_current_step() + 1);
+    String name = get_main_cycle_display_string();
+    Serial.println(number + " " + name);
+    display_text_in_field(number + " " + name, "t0");
+    nex_prev_main_cycle_step = state_controller.get_current_step();
+  }
+}
+
+String get_main_cycle_display_string() {
   int current_step = state_controller.get_current_step();
   String display_text_cycle_name = main_cycle_steps[current_step]->get_display_text();
+  return display_text_cycle_name;
+}
+
+String get_continuous_cycle_display_string() {
+  int current_step = state_controller.get_current_continuous_step();
+  String display_text_cycle_name = continuous_cycle_steps[current_step]->get_display_text();
   return display_text_cycle_name;
 }
 
@@ -997,10 +1042,9 @@ class Continuous_release_air_timer : public Cycle_step {
         block_sledge();
         substep = 1;
       }
-
-      if (sensor_sledge_endposition.switched_high()) {
-        set_loop_completed();
-      }
+    }
+    if (sensor_sledge_endposition.switched_high()) {
+      set_loop_completed();
     }
   }
 };
@@ -1019,7 +1063,6 @@ class Continuous_vent : public Cycle_step {
     }
   }
 };
-
 //------------------------------------------------------------------------------
 class Continuous_sledge_back : public Cycle_step {
   String get_display_text() { return "MOVE BACK"; }
@@ -1028,6 +1071,7 @@ class Continuous_sledge_back : public Cycle_step {
   void do_initial_stuff() {
     traffic_light.set_info_machine_do_stuff();
     motor_output_disable();
+    move_sledge();
     has_reached_startpoint = false;
     cycle_step_delay.set_unstarted();
   }
@@ -1040,12 +1084,12 @@ class Continuous_sledge_back : public Cycle_step {
     if (has_reached_startpoint) {
       if (cycle_step_delay.delay_time_is_up(2000)) {
         block_sledge();
+        motor_output_enable();
         set_loop_completed();
       }
     }
   }
 };
-
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
 //------------------------------------------------------------------------------
