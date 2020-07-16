@@ -25,6 +25,7 @@ public:
   State_controller();
 
   void set_no_of_steps(int number_of_steps);
+  void set_no_of_continuous_steps(int number_of_steps);
 
   void set_step_mode();
   bool is_in_step_mode();
@@ -49,13 +50,11 @@ public:
   bool machine_is_running();
 
   void switch_to_next_step();
+  void switch_to_previous_step();
   void set_current_step_to(int cycle_step);
   int get_current_step();
   bool step_switch_has_happend();
 
-  void set_no_of_continuous_steps(int number_of_steps);
-  void switch_to_next_continuous_step();
-  int get_current_continuous_step();
 
   // VARIABLES:
   // n.a.

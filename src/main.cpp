@@ -209,7 +209,7 @@ void reset_flag_of_current_step() {
     main_cycle_steps[state_controller.get_current_step()]->reset_flags();
   }
   if (state_controller.is_in_continuous_mode()) {
-    continuous_cycle_steps[state_controller.get_current_continuous_step()]->reset_flags();
+    continuous_cycle_steps[state_controller.get_current_step()]->reset_flags();
   }
 }
 
@@ -480,19 +480,21 @@ void switch_step_auto_mode_push(void *ptr) {
 }
 
 void button_stepback_push(void *ptr) {
-  if (state_controller.get_current_step() > 0) {
-    state_controller.set_machine_stop();
-    reset_flag_of_current_step();
-    state_controller.set_current_step_to(state_controller.get_current_step() - 1);
-  }
+  state_controller.set_machine_stop();
+  reset_flag_of_current_step();
+  state_controller.switch_to_previous_step();
+  reset_flag_of_current_step();
 }
+
 void button_next_step_push(void *ptr) {
   state_controller.set_machine_stop();
   reset_flag_of_current_step();
   state_controller.switch_to_next_step();
+  reset_flag_of_current_step();
 }
 
 void button_reset_cycle_push(void *ptr) {
+  reset_flag_of_current_step();
   set_initial_cylinder_states();
   state_controller.set_reset_mode(true);
   clear_text_field("t4");
@@ -592,7 +594,7 @@ void page_1_push(void *ptr) {
 
   // REFRESH BUTTON STATES:
   nex_prev_main_cycle_step = !state_controller.get_current_step();
-  nex_prev_continuous_cycle_step = !state_controller.get_current_continuous_step();
+  //nex_prev_continuous_cycle_step = !state_controller.get_current_continuous_step();
   nex_state_step_mode = true;
   nex_state_air_release = 1;
   nex_state_motor_brake = 0;
@@ -715,12 +717,12 @@ void update_main_cycle_name() {
 }
 
 void update_continuous_cycle_name() {
-  if (nex_prev_continuous_cycle_step != state_controller.get_current_continuous_step()) {
-    String number = String(state_controller.get_current_continuous_step() + 1);
+  if (nex_prev_continuous_cycle_step != state_controller.get_current_step()) {
+    String number = String(state_controller.get_current_step() + 1);
     String name = get_continuous_cycle_display_string();
     Serial.println(number + " " + name);
     display_text_in_field(number + " " + name, "t0");
-    nex_prev_continuous_cycle_step = state_controller.get_current_continuous_step();
+    nex_prev_continuous_cycle_step = state_controller.get_current_step();
   }
 }
 
@@ -749,7 +751,7 @@ String get_main_cycle_display_string() {
 }
 
 String get_continuous_cycle_display_string() {
-  int current_step = state_controller.get_current_continuous_step();
+  int current_step = state_controller.get_current_step();
   String display_text_cycle_name = continuous_cycle_steps[current_step]->get_display_text();
   return display_text_cycle_name;
 }
@@ -1179,14 +1181,14 @@ void run_step_or_auto_mode() {
 
 void run_continuous_mode() {
   // IF STEP IS COMPLETED SWITCH TO NEXT STEP:
-  if (continuous_cycle_steps[state_controller.get_current_continuous_step()]->is_completed()) {
-    state_controller.switch_to_next_continuous_step();
+  if (continuous_cycle_steps[state_controller.get_current_step()]->is_completed()) {
+    state_controller.switch_to_next_step();
     reset_flag_of_current_step();
   }
 
   // IF MACHINE STATE IS "RUNNING", RUN CURRENT STEP:
   if (state_controller.machine_is_running()) {
-    continuous_cycle_steps[state_controller.get_current_continuous_step()]->do_stuff();
+    continuous_cycle_steps[state_controller.get_current_step()]->do_stuff();
   }
 
   // MEASURE AND DISPLAY PRESSURE
