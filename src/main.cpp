@@ -958,12 +958,13 @@ class Cut_strap : public Cycle_step {
     cylinder_frontclap.set(1);
   }
   void do_loop_stuff() {
-    cylinder_blade.stroke(2000, 1000);
+    // cylinder_blade.stroke(2000, 1000); // Original values
+    cylinder_blade.stroke(2000, 18000); // Increased delay to reduce number of cycles per minute
     if (cylinder_blade.stroke_completed()) {
       cylinder_frontclap.set(0);
       set_loop_completed();
     }
-  }
+  }ö
 };
 //------------------------------------------------------------------------------
 class Feed_straps : public Cycle_step {
