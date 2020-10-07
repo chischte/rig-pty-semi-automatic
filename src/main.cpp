@@ -964,7 +964,7 @@ class Cut_strap : public Cycle_step {
       cylinder_frontclap.set(0);
       set_loop_completed();
     }
-  }ö
+  }
 };
 //------------------------------------------------------------------------------
 class Feed_straps : public Cycle_step {
