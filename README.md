@@ -21,9 +21,6 @@ raw=true
 ***
 **NEXTION TOUCH DISPLAY NOTES:**
 
-An XLS-sheet to generate Nextion events can be found here:
-https://github.com/chischte/user-interface/NEXTION/
-
 CONFIGURING THE NEXTION LIBRARY:  
 Make sure you edit the NexConfig.h file on the library folder to set the
 correct serial port for the display.
