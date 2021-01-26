@@ -107,8 +107,10 @@ Debounce sensor_sledge_endposition(CONTROLLINO_A1);
 // Debounce sensor_upper_strap(CONTROLLINO_A2);
 // Debounce sensor_lower_strap(CONTROLLINO_A3);
 
-Insomnia motor_output_timeout(120000); // to prevent overheating
-Insomnia motor_display_sleep_timeout(90000); // to inform that brakes will soon release
+
+
+Insomnia motor_output_timeout(259200000); // = 3 days// planned to prevent overheating
+Insomnia motor_display_sleep_timeout(259000000); // to inform that brakes will soon release
 Insomnia nex_reset_button_timeout(3000); // pushtime to reset counter
 Insomnia print_interval_timeout(1000);
 Insomnia erase_force_value_timeout(5000);
