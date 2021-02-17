@@ -1098,9 +1098,6 @@ void setup_stepper_motors() {
   pinMode(LOWER_MOTOR_DIRECTION_PIN, OUTPUT);
   digitalWrite(UPPER_MOTOR_DIRECTION_PIN, HIGH);
   digitalWrite(LOWER_MOTOR_DIRECTION_PIN, HIGH);
-
-  // SET MAX ENABLE AND BRAKE TIME:
-  //motor_output_timeout.set_time(60000); // to prevent overheating
 }
 
 // MAIN SETUP ******************************************************************
@@ -1138,7 +1135,7 @@ void setup() {
   //------------------------------------------------
   Serial.begin(115200);
   state_controller.set_auto_mode();
-  state_controller.set_machine_stop();
+  state_controller.set_machine_running();
   Serial.println("EXIT SETUP");
   //------------------------------------------------
   nextion_display_setup();
