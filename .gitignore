@@ -15,10 +15,12 @@ BXT_STANDARD_RIG/spec.d
 
 *.ino#
 
-.pio/build/
+.pio
 
 .vscode/
 
 pinout/~$pinout.xlsx
 
 stepper_motor/~$motor_calculations.xlsx
+
+.pio/libdeps/controllino_mega/CONTROLLINO/.piopm
