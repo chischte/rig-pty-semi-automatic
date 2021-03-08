@@ -11,8 +11,9 @@
  * Measured runtime in idle: about 130 micros
  * -----------------------------------------------------------------------------
  * TODO:
+ * Stroke completed signal kommt zu früh (nach dem Schneiden), bereits wenndeshalb musste
+ * temproär ein delay eingabaut werden!
  * Close front shield earlier
- * Speed up Cutter speed when safety shields are installed
  * *****************************************************************************
  */
 
@@ -106,8 +107,6 @@ Debounce sensor_sledge_startposition(CONTROLLINO_A0);
 Debounce sensor_sledge_endposition(CONTROLLINO_A1);
 // Debounce sensor_upper_strap(CONTROLLINO_A2);
 // Debounce sensor_lower_strap(CONTROLLINO_A3);
-
-
 
 Insomnia motor_output_timeout(259200000); // = 3 days// planned to prevent overheating
 Insomnia motor_display_sleep_timeout(259000000); // to inform that brakes will soon release
@@ -941,9 +940,10 @@ class Sledge_back : public Cycle_step {
     traffic_light.set_info_machine_do_stuff();
     motor_output_disable();
     move_sledge();
+    cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (sensor_sledge_startposition.get_button_state()) {
+    if (cycle_step_delay.delay_time_is_up(3000)) {
       vent_sledge();
       set_loop_completed();
     }
@@ -960,9 +960,10 @@ class Cut_strap : public Cycle_step {
     cylinder_frontclap.set(1);
   }
   void do_loop_stuff() {
-    cylinder_blade.stroke(2000, 1000);
+    cylinder_blade.stroke(2000, 1500);
     if (cylinder_blade.stroke_completed()) {
       cylinder_frontclap.set(0);
+      delay(1200);
       set_loop_completed();
     }
   }
