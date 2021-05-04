@@ -878,7 +878,8 @@ class User_do_stuff : public Cycle_step {
   int substep = 0;
 
   void do_initial_stuff() {
-    block_sledge();
+    vent_sledge();
+    //block_sledge();
     motor_output_enable();
     traffic_light.set_info_user_do_stuff();
     substep = 0;
