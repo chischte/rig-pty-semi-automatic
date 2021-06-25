@@ -891,7 +891,7 @@ class User_do_stuff : public Cycle_step {
       substep = 1;
     }
     if (substep == 1) {
-      if (cycle_step_delay.delay_time_is_up(3000)) {
+      if (cycle_step_delay.delay_time_is_up(3700)) {
         counter.count_one_up(shorttime_counter);
         counter.count_one_up(longtime_counter);
         set_loop_completed();
@@ -943,7 +943,7 @@ class Sledge_back : public Cycle_step {
     cycle_step_delay.set_unstarted();
   }
   void do_loop_stuff() {
-    if (cycle_step_delay.delay_time_is_up(3000)) {
+    if (cycle_step_delay.delay_time_is_up(1800)) {
       vent_sledge();
       set_loop_completed();
     }
@@ -960,10 +960,9 @@ class Cut_strap : public Cycle_step {
     cylinder_frontclap.set(1);
   }
   void do_loop_stuff() {
-    cylinder_blade.stroke(2000, 1500);
+    cylinder_blade.stroke(1300, 1000);
     if (cylinder_blade.stroke_completed()) {
       cylinder_frontclap.set(0);
-      delay(1200);
       set_loop_completed();
     }
   }
