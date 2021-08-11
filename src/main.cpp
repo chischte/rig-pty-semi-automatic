@@ -11,9 +11,6 @@
  * Measured runtime in idle: about 130 micros
  * -----------------------------------------------------------------------------
  * TODO:
- * Stroke completed signal kommt zu früh (nach dem Schneiden), bereits wenndeshalb musste
- * temproär ein delay eingabaut werden!
- * Close front shield earlier
  * *****************************************************************************
  */
 
